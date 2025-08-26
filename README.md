@@ -1,6 +1,20 @@
 # chat-scalable
 확장성과 내결함성을 갖춘 WebFlux 기반 채팅 웹 서버 구현(Redis, Kafka 사용)
 
+<pre><code>```
+[chat-react]
+    └── STOMP 없이 구현한 간단한 채팅 클라이언트 
+
+[chat-bot]
+    └── STOMP 제거 버전의 시뮬레이션용 부하 테스트 봇
+
+[chat-webflux]
+    └── 비상태(Stateless) 구조의 Spring WebFlux + Netty 기반 채팅 서버
+
+[chat-infra] 
+    └── MySQL, Redis, Kafka 등 인프라 구성 스크립트
+```</code></pre>
+
 
 ## 프로젝트 개요
 [이전 프로젝트](https://github.com/gr1993/chat-service)에서는 MVC와 WebFlux 기반의 채팅 웹 서버를 구현하고, 해당 서버에 대해 성능 테스트를   
