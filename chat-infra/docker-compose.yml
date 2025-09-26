@@ -1,0 +1,38 @@
+services:
+  primary:
+    build:
+      context: ./postgres
+    container_name: primary
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - chat-net
+    volumes:
+      - ./postgres/primary:/etc/postgresql/conf
+      - ./postgres/primary/repmgr_primary.conf:/etc/repmgr/repmgr.conf
+    command: postgres -c config_file=/etc/postgresql/conf/postgresql.conf -c hba_file=/etc/postgresql/conf/pg_hba.conf
+
+  replica:
+    build:
+      context: ./postgres
+    container_name: replica
+    depends_on:
+      - primary
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    networks:
+      - chat-net
+    volumes:
+      - ./postgres/replica:/etc/postgresql/conf
+      - ./postgres/replica/repmgr_replica.conf:/etc/repmgr/repmgr.conf
+    command: postgres -c config_file=/etc/postgresql/conf/postgresql.conf -c hba_file=/etc/postgresql/conf/pg_hba.conf
+
+
+networks:
+  chat-net:
+    name: chat-net
+    driver: bridge
