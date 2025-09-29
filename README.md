@@ -43,3 +43,10 @@ RDBMS와 Kafka 간 데이터 일관성을 보장하기 위해 Transactional Outb
 
 ## 아키텍처 구성도
 ![architecture](./docs/architecture.png)
+
+### 저장소 구축 및 복제 구성 정리 블로그
+* PostgreSQL
+  * [Replication 구성하기](https://www.notion.so/Replication-27182094ef0a80cfbe96cf02ea555347)
+  * [Failover(HA)와 Proxy Layer 구성하기](https://www.notion.so/Failover-HA-Proxy-Layer-27382094ef0a8083a27cde09c887c543)
+* Redis
+* Kafka

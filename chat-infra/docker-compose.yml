@@ -31,6 +31,21 @@ services:
       - ./postgres/replica/repmgr_replica.conf:/etc/repmgr/repmgr.conf
     command: postgres -c config_file=/etc/postgresql/conf/postgresql.conf -c hba_file=/etc/postgresql/conf/pg_hba.conf
 
+  pgpool:
+    image: pgpool/pgpool
+    container_name: pgpool
+    ports:
+      - "5000:5432"
+    depends_on:
+      - primary
+      - replica
+    networks:
+      - chat-net
+    volumes:
+      - ./postgres/pgpool/pgpool.conf:/config/pgpool.conf
+      - ./postgres/pgpool/pool_hba.conf:/config/pool_hba.conf
+      - ./postgres/pgpool/failover.sh:/opt/pgpool-II/etc/failover.sh
+
 
 networks:
   chat-net:
