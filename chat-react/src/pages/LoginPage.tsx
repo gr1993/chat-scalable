@@ -9,7 +9,7 @@ import { useUserStore } from '@/store/useUserStore';
 import { useAppStore } from '@/store/useAppStore';
 import { useNavigate } from 'react-router-dom';
 import { handleApiResponse } from '@/api/apiUtils';
-import { entryUser } from '@/api/user';
+import { enterUser } from '@/api/user';
 
 
 const LoginBox = styled.form`
@@ -47,7 +47,7 @@ const LoginPage: React.FC = () => {
 
     // 사용자 입장 API
     handleApiResponse(
-      entryUser(inputId),
+      enterUser(inputId),
       () => {
         login(inputId);
         navigate('/room');
