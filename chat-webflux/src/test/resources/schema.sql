@@ -1,0 +1,19 @@
+CREATE TABLE chat_user (
+    id VARCHAR(20) PRIMARY KEY,
+    create_dt TIMESTAMP NOT NULL
+);
+
+CREATE TABLE chat_room (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    create_dt TIMESTAMP NOT NULL
+);
+
+CREATE TABLE chat_message (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    sender_id VARCHAR(50) NOT NULL,
+    room_id BIGINT NOT NULL,
+    message TEXT NOT NULL,
+    send_dt TIMESTAMP NOT NULL,
+    CONSTRAINT fk_chat_room FOREIGN KEY (room_id) REFERENCES chat_room(id)
+);
