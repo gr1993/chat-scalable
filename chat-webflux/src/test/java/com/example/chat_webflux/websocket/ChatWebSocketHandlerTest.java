@@ -12,13 +12,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.web.reactive.socket.WebSocketMessage;
+import org.springframework.web.reactive.socket.WebSocketSession;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -54,23 +57,37 @@ public class ChatWebSocketHandlerTest {
     @Test
     void createRoom_성공() throws Exception {
         // given
-        BlockingQueue<ChatRoomInfo> blockingQueue = getSubscriptionQueue("/topic/rooms", ChatRoomInfo.class);
+        BlockingQueue<ChatRoomInfo> blockingQueue = new LinkedBlockingQueue<>();
 
-        // when
-        String roomName = "park";
-        chatRoomService.createRoom(roomName).block();
+        getSubscriptionTest(
+            "/topic/rooms",
+            ChatRoomInfo.class,
+            blockingQueue,
+            session -> Mono.fromRunnable(() -> {
+                // when
+                String roomName = "park";
+                chatRoomService.createRoom(roomName).block();
 
-        // then
-        ChatRoomInfo chatRoomInfo = blockingQueue.poll(5, TimeUnit.SECONDS);
-        log.info("받은 메세지 객체 : {}", chatRoomInfo);
-        assertNotNull(chatRoomInfo);
-        assertEquals(roomName, chatRoomInfo.getRoomName());
+                // then
+                try {
+                    ChatRoomInfo chatRoomInfo = blockingQueue.poll(5, TimeUnit.SECONDS);
+                    log.info("받은 메세지 객체 : {}", chatRoomInfo);
+                    assertNotNull(chatRoomInfo);
+                    assertEquals(roomName, chatRoomInfo.getRoomName());
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            })
+        ).block();
     }
 
-    private <T> BlockingQueue<T> getSubscriptionQueue(String destination, Class<T> clazz) {
-        BlockingQueue<T> blockingQueue = new LinkedBlockingQueue<>();
-
-        Mono<Void> sessionMono = client.execute(uri, session -> {
+    private <T> Mono<Void> getSubscriptionTest(
+            String destination,
+            Class<T> clazz,
+            BlockingQueue<T> blockingQueue,
+            Function<WebSocketSession, Mono<Void>> sessionLogic
+    ) {
+        return client.execute(uri, session -> {
 
             // 수신
             Mono<Void> inputReceive = session.receive()
@@ -87,6 +104,10 @@ public class ChatWebSocketHandlerTest {
                     .doOnNext(blockingQueue::offer)
                     .then();
 
+            // 수신 스트림을 백그라운드에서 실행
+            inputReceive.subscribe();
+
+
             // 송신(구독 요청)
             String jsonStr = "";
             try {
@@ -96,14 +117,12 @@ public class ChatWebSocketHandlerTest {
             }
             Mono<Void> outputSend = session.send(Mono.just(session.textMessage(jsonStr))).then();
 
-            // 수신 스트림을 백그라운드에서 실행
-            inputReceive.subscribe();
-            // 송신 후, 세션이 닫히지 않도록 무한정 대기
-            return outputSend.then(Mono.never());
+            // 송신 후, 테스트 로직 실행
+            return outputSend
+                    .then(Mono.delay(Duration.ofMillis(200)))
+                    .then(sessionLogic.apply(session))
+                    .then(session.close());
         });
-
-        sessionMono.subscribe();
-        return blockingQueue;
     }
 
 }
