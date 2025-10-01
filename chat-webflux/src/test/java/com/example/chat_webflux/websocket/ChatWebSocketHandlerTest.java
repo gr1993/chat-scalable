@@ -82,7 +82,7 @@ public class ChatWebSocketHandlerTest {
                     assertEquals(roomName, chatRoomInfo.getRoomName());
                     return wsMsg;
                 }))
-                .then(session.close())
+                .then() // 업스트림의 Mono<T> 반환 값을 무시하고 Mono<Void>로 변환
         ).block();
     }
 
@@ -90,7 +90,7 @@ public class ChatWebSocketHandlerTest {
             String destination,
             TypeReference<WsJsonMessage<T>> typeReference,
             BlockingQueue<WsJsonMessage<T>> blockingQueue,
-            Function<WebSocketSession, Mono<Void>> sessionLogic
+            Function<WebSocketSession, Mono<Void>> serviceLogic
     ) {
         return client.execute(uri, session -> {
 
@@ -109,10 +109,6 @@ public class ChatWebSocketHandlerTest {
                     .doOnNext(blockingQueue::offer)
                     .then();
 
-            // 수신 스트림을 백그라운드에서 실행
-            inputReceive.subscribe();
-
-
             // 송신(구독 요청)
             String jsonStr = "";
             try {
@@ -122,10 +118,14 @@ public class ChatWebSocketHandlerTest {
             }
             Mono<Void> outputSend = session.send(Mono.just(session.textMessage(jsonStr))).then();
 
-            // 송신 후, 테스트 로직 실행
-            return outputSend
+            Mono<Void> logicAndClose = outputSend
                     .then(Mono.delay(Duration.ofMillis(200)))
-                    .then(sessionLogic.apply(session));
+                    .then(serviceLogic.apply(session))
+                    .then(session.close());
+
+            // 수신과 송신/로직을 경쟁(race) 또는 합치기
+            return Mono.when(inputReceive, logicAndClose)
+                    .then();
         });
     }
 
