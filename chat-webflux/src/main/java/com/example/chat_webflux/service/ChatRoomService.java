@@ -25,18 +25,21 @@ public class ChatRoomService {
      */
     public Mono<Void> createRoom(String name) {
         ChatRoom newChatRoom = new ChatRoom(name);
-        chatRoomRepository.save(newChatRoom);
+        return chatRoomRepository.save(newChatRoom)
+                .flatMap(savedRoom -> {
 
-        // 채팅방 생성을 구독자들에게 알림
-        try {
-            ChatRoomInfo chatRoomInfo = new ChatRoomInfo(newChatRoom);
-            WsJsonMessage<ChatRoomInfo> wsMsg = new WsJsonMessage<>("ROOM_CREATED", "/topic/rooms", chatRoomInfo);
+                    // 채팅방 생성을 구독자들에게 알림
+                    try {
+                        ChatRoomInfo chatRoomInfo = new ChatRoomInfo(savedRoom);
+                        WsJsonMessage<ChatRoomInfo> wsMsg = new WsJsonMessage<>("ROOM_CREATED", "/topic/rooms", chatRoomInfo);
 
-            Sinks.Many<String> serverSinks = chatRoomManager.getChatServerSinks();
-            serverSinks.tryEmitNext(objectMapper.writeValueAsString(wsMsg));
-        } catch (JsonProcessingException ex) {
-            throw new RuntimeException(ex);
-        }
-        return Mono.empty();
+                        Sinks.Many<String> serverSinks = chatRoomManager.getChatServerSinks();
+                        serverSinks.tryEmitNext(objectMapper.writeValueAsString(wsMsg));
+                    } catch (JsonProcessingException ex) {
+                        return Mono.error(ex);
+                    }
+
+                    return Mono.empty();
+                });
     }
 }

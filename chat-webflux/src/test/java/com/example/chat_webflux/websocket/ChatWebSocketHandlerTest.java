@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
@@ -32,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 @Slf4j
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
 public class ChatWebSocketHandlerTest {
 
     @Autowired
@@ -58,20 +60,16 @@ public class ChatWebSocketHandlerTest {
     @Test
     void createRoom_성공() throws Exception {
         // given
+        String roomName = "park";
         BlockingQueue<WsJsonMessage<ChatRoomInfo>> blockingQueue = new LinkedBlockingQueue<>();
 
+        // when & then
         getSubscriptionTest(
             "/topic/rooms",
-            new TypeReference<WsJsonMessage<ChatRoomInfo>>() {},
+            new TypeReference<>() {},
             blockingQueue,
-            session -> Mono.fromRunnable(() -> {
-
-                // when
-                String roomName = "park";
-                chatRoomService.createRoom(roomName).block();
-
-                // then
-                try {
+            session -> chatRoomService.createRoom("park")
+                .then(Mono.fromCallable(() -> {
                     WsJsonMessage<ChatRoomInfo> wsMsg = blockingQueue.poll(5, TimeUnit.SECONDS);
                     assertNotNull(wsMsg);
                     assertEquals("ROOM_CREATED", wsMsg.getType());
@@ -80,11 +78,11 @@ public class ChatWebSocketHandlerTest {
 
                     ChatRoomInfo chatRoomInfo = wsMsg.getData();
                     log.info("받은 메세지 객체 : {}", chatRoomInfo);
+                    assertNotNull(chatRoomInfo.getRoomId());
                     assertEquals(roomName, chatRoomInfo.getRoomName());
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            })
+                    return wsMsg;
+                }))
+                .then(session.close())
         ).block();
     }
 
@@ -127,8 +125,7 @@ public class ChatWebSocketHandlerTest {
             // 송신 후, 테스트 로직 실행
             return outputSend
                     .then(Mono.delay(Duration.ofMillis(200)))
-                    .then(sessionLogic.apply(session))
-                    .then(session.close());
+                    .then(sessionLogic.apply(session));
         });
     }
 
