@@ -2,6 +2,7 @@ package com.example.chat_webflux.service;
 
 import com.example.chat_webflux.common.ChatRoomManager;
 import com.example.chat_webflux.dto.ChatRoomInfo;
+import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -28,8 +29,11 @@ public class ChatRoomService {
 
         // 채팅방 생성을 구독자들에게 알림
         try {
+            ChatRoomInfo chatRoomInfo = new ChatRoomInfo(newChatRoom);
+            WsJsonMessage<ChatRoomInfo> wsMsg = new WsJsonMessage<>("ROOM_CREATED", "/topic/rooms", chatRoomInfo);
+
             Sinks.Many<String> serverSinks = chatRoomManager.getChatServerSinks();
-            serverSinks.tryEmitNext(objectMapper.writeValueAsString(new ChatRoomInfo(newChatRoom)));
+            serverSinks.tryEmitNext(objectMapper.writeValueAsString(wsMsg));
         } catch (JsonProcessingException ex) {
             throw new RuntimeException(ex);
         }

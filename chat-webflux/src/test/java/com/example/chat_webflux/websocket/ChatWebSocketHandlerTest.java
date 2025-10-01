@@ -4,6 +4,7 @@ import com.example.chat_webflux.dto.ChatRoomInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.service.ChatRoomService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,22 +58,28 @@ public class ChatWebSocketHandlerTest {
     @Test
     void createRoom_성공() throws Exception {
         // given
-        BlockingQueue<ChatRoomInfo> blockingQueue = new LinkedBlockingQueue<>();
+        BlockingQueue<WsJsonMessage<ChatRoomInfo>> blockingQueue = new LinkedBlockingQueue<>();
 
         getSubscriptionTest(
             "/topic/rooms",
-            ChatRoomInfo.class,
+            new TypeReference<WsJsonMessage<ChatRoomInfo>>() {},
             blockingQueue,
             session -> Mono.fromRunnable(() -> {
+
                 // when
                 String roomName = "park";
                 chatRoomService.createRoom(roomName).block();
 
                 // then
                 try {
-                    ChatRoomInfo chatRoomInfo = blockingQueue.poll(5, TimeUnit.SECONDS);
+                    WsJsonMessage<ChatRoomInfo> wsMsg = blockingQueue.poll(5, TimeUnit.SECONDS);
+                    assertNotNull(wsMsg);
+                    assertEquals("ROOM_CREATED", wsMsg.getType());
+                    assertEquals("/topic/rooms", wsMsg.getDestination());
+                    assertNotNull(wsMsg.getData());
+
+                    ChatRoomInfo chatRoomInfo = wsMsg.getData();
                     log.info("받은 메세지 객체 : {}", chatRoomInfo);
-                    assertNotNull(chatRoomInfo);
                     assertEquals(roomName, chatRoomInfo.getRoomName());
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
@@ -83,8 +90,8 @@ public class ChatWebSocketHandlerTest {
 
     private <T> Mono<Void> getSubscriptionTest(
             String destination,
-            Class<T> clazz,
-            BlockingQueue<T> blockingQueue,
+            TypeReference<WsJsonMessage<T>> typeReference,
+            BlockingQueue<WsJsonMessage<T>> blockingQueue,
             Function<WebSocketSession, Mono<Void>> sessionLogic
     ) {
         return client.execute(uri, session -> {
@@ -94,7 +101,7 @@ public class ChatWebSocketHandlerTest {
                     .map(WebSocketMessage::getPayloadAsText)
                     .flatMap(json -> {
                         try {
-                            T obj = objectMapper.readValue(json, clazz);
+                            WsJsonMessage<T> obj = objectMapper.readValue(json, typeReference);
                             return Mono.just(obj);
                         } catch (Exception e) {
                             e.printStackTrace();
