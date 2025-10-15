@@ -30,7 +30,6 @@ public class ChatRoomRepositoryTest {
     void save_성공() {
         // given
         ChatRoom chatRoom = new ChatRoom("park");
-        chatRoom.setCreateDt(LocalDateTime.now());
 
         // when
         chatRoomRepository.save(chatRoom).block();
