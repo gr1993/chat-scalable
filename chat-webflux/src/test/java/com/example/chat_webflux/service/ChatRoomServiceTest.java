@@ -1,0 +1,60 @@
+package com.example.chat_webflux.service;
+
+import com.example.chat_webflux.common.ChatRoomManager;
+import com.example.chat_webflux.dto.WsJsonMessage;
+import com.example.chat_webflux.entity.ChatRoom;
+import com.example.chat_webflux.repository.ChatRoomRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+
+@ExtendWith(MockitoExtension.class)
+public class ChatRoomServiceTest {
+
+    @InjectMocks
+    private ChatRoomService chatRoomService;
+
+    @Mock
+    private ChatRoomRepository chatRoomRepository;
+
+    @Mock
+    private ChatRoomManager chatRoomManager;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
+
+    @Test
+    void createRoom_성공() throws Exception {
+        // given
+        String roomName = "park";
+        ChatRoom newChatRoom = new ChatRoom(roomName);
+
+        when(chatRoomRepository.save(any(ChatRoom.class)))
+                .thenReturn(Mono.just(newChatRoom));
+
+        Sinks.Many<String> mockSink = mock(Sinks.Many.class);
+        when(chatRoomManager.getChatServerSinks())
+                .thenReturn(mockSink);
+
+        when(objectMapper.writeValueAsString(any(WsJsonMessage.class)))
+                .thenReturn("{}");
+
+        // when
+        chatRoomService.createRoom(roomName).block();
+
+        // then
+        verify(chatRoomRepository).save(any(ChatRoom.class));
+        verify(mockSink).tryEmitNext(anyString());
+    }
+}
