@@ -2,14 +2,18 @@ package com.example.chat_webflux.controller;
 
 import com.example.chat_webflux.common.RoomUserSessionManager;
 import com.example.chat_webflux.dto.ApiResponse;
+import com.example.chat_webflux.dto.ChatRoomInfo;
 import com.example.chat_webflux.service.ChatRoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/room")
@@ -18,6 +22,12 @@ public class ChatRoomRestController {
 
     private final ChatRoomService chatRoomService;
     private final RoomUserSessionManager roomUserSessionManager;
+
+    @GetMapping
+    public Mono<ResponseEntity<ApiResponse<List<ChatRoomInfo>>>> getRoomList() {
+        return chatRoomService.getRoomList()
+                .map(roomList -> ResponseEntity.ok(ApiResponse.ok(roomList)));
+    }
 
     /**
      * WebFlux 환경에서는 x-www-form-urlencoded 일 때 @RequestParam 방식 말고 다른 방식의 body 파싱을 사용하여야 한다.

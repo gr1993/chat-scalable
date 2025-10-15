@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ChatRoomService {
@@ -19,6 +21,15 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomManager chatRoomManager;
     private final ObjectMapper objectMapper;
+
+    /**
+     * 전체 채팅방 리스트 조회
+     */
+    public Mono<List<ChatRoomInfo>> getRoomList() {
+        return chatRoomRepository.findAll()
+                .map(ChatRoomInfo::new)
+                .collectList();
+    }
 
     /**
      * 채팅방 만들기

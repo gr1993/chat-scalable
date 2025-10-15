@@ -1,6 +1,7 @@
 package com.example.chat_webflux.service;
 
 import com.example.chat_webflux.common.ChatRoomManager;
+import com.example.chat_webflux.dto.ChatRoomInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.repository.ChatRoomRepository;
@@ -10,9 +11,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -33,6 +39,24 @@ public class ChatRoomServiceTest {
     @Mock
     private ObjectMapper objectMapper;
 
+
+    @Test
+    void getRoomList_성공() {
+        // given
+        List<ChatRoom> mockRoomList = List.of(
+                new ChatRoom("park"),
+                new ChatRoom("kang")
+        );
+        when(chatRoomRepository.findAll())
+                .thenReturn(Flux.fromIterable(mockRoomList));
+
+        // when
+        List<ChatRoomInfo> roomList = chatRoomService.getRoomList().block();
+
+        // then
+        assertFalse(roomList.isEmpty());
+        assertEquals(2, roomList.size());
+    }
 
     @Test
     void createRoom_성공() throws Exception {
