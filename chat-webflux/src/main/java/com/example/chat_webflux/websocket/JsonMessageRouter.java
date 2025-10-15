@@ -1,8 +1,11 @@
 package com.example.chat_webflux.websocket;
 
+import com.example.chat_webflux.dto.SendMessageInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
+import com.example.chat_webflux.service.ChatMessageService;
 import com.example.chat_webflux.service.SubscriptionService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -13,6 +16,7 @@ import reactor.core.publisher.Sinks;
 @RequiredArgsConstructor
 public class JsonMessageRouter {
 
+    private final ChatMessageService chatMessageService;
     private final SubscriptionService subscriptionService;
     private final ObjectMapper objectMapper;
 
@@ -21,6 +25,7 @@ public class JsonMessageRouter {
             WsJsonMessage wsJsonMessage = objectMapper.readValue(jsonMessage, WsJsonMessage.class);
             switch (wsJsonMessage.getType()) {
                 case "SEND":
+                    handleSend(jsonMessage);
                     break;
                 case "SUBSCRIBE":
                     handleSubscribe(sessionSink, session, wsJsonMessage);
@@ -36,11 +41,25 @@ public class JsonMessageRouter {
         }
     }
 
+    private void handleSend(String jsonMessage) throws JsonProcessingException {
+        WsJsonMessage<SendMessageInfo> wsJsonMessage = objectMapper.readValue(
+                jsonMessage,
+                new TypeReference<WsJsonMessage<SendMessageInfo>>() {}
+        );
+        chatMessageService.sendMessageToRoom(wsJsonMessage.getData())
+                .subscribe();
+    }
+
     private void handleSubscribe(Sinks.Many<String> sessionSink, WebSocketSession session, WsJsonMessage wsJsonMessage) {
         String sessionId = session.getId();
         String destination = wsJsonMessage.getDestination();
 
-        if (destination.startsWith("/topic/rooms")) {
+        // 채팅방 메시지 구독
+        if (destination.startsWith("/topic/message/")) {
+            subscriptionService.subscribeRoomMessage(sessionSink, destination, sessionId);
+        }
+        // 채팅방 생성 구독
+        else if (destination.startsWith("/topic/rooms")) {
             subscriptionService.subscribeRoomCreate(sessionSink, destination, sessionId);
         }
     }

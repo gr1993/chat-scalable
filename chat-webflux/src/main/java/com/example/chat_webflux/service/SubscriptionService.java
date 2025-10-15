@@ -23,6 +23,19 @@ public class SubscriptionService {
     private final ConcurrentHashMap<String, Disposable> subscriptions = new ConcurrentHashMap<>();
 
     /**
+     * 채팅방 메시지 구독
+     */
+    public void subscribeRoomMessage(Sinks.Many<String> sessionSink,
+                                     String destination,
+                                     String sessionId) {
+        String roomId = destination.substring("/topic/message/".length());
+
+        // 해당 채팅방의 Sinks.Many를 가져오거나 없으면 새로 생성
+        Sinks.Many<String> roomSink = chatRoomManager.getRoomSink(roomId);
+        subscribe(roomSink, sessionSink, destination, sessionId);
+    }
+
+    /**
      * 채팅방 생성 구독
      */
     public void subscribeRoomCreate(Sinks.Many<String> sessionSink,
