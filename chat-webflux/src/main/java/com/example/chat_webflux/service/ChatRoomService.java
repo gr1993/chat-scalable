@@ -2,9 +2,11 @@ package com.example.chat_webflux.service;
 
 import com.example.chat_webflux.common.ChatRoomManager;
 import com.example.chat_webflux.dto.ChatRoomInfo;
+import com.example.chat_webflux.dto.SendMessageInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.repository.ChatRoomRepository;
+import com.example.chat_webflux.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +20,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatRoomService {
 
+    private final ChatMessageService chatMessageService;
     private final ChatRoomRepository chatRoomRepository;
+    private final UserRepository userRepository;
     private final ChatRoomManager chatRoomManager;
     private final ObjectMapper objectMapper;
 
@@ -52,5 +56,21 @@ public class ChatRoomService {
 
                     return Mono.empty();
                 });
+    }
+
+    /**
+     * 채팅방에 입장
+     */
+    public Mono<Void> enterRoom(Long roomId, String userId) {
+        SendMessageInfo sendMessageInfo = new SendMessageInfo(roomId, userId, userId + "님이 입장하셨습니다.");
+        return chatMessageService.sendMessageToRoom(sendMessageInfo, true);
+    }
+
+    /**
+     * 채팅방에서 퇴장
+     */
+    public Mono<Void> exitRoom(Long roomId, String userId) {
+        SendMessageInfo sendMessageInfo = new SendMessageInfo(roomId, userId, userId + "님이 퇴장하셨습니다.");
+        return chatMessageService.sendMessageToRoom(sendMessageInfo, true);
     }
 }

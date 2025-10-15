@@ -2,7 +2,6 @@ package com.example.chat_webflux.service;
 
 import com.example.chat_webflux.common.ChatRoomManager;
 import com.example.chat_webflux.dto.ChatMessageInfo;
-import com.example.chat_webflux.dto.ChatRoomInfo;
 import com.example.chat_webflux.dto.SendMessageInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatMessage;
@@ -25,6 +24,10 @@ public class ChatMessageService {
     private final ObjectMapper objectMapper;
 
     public Mono<Void> sendMessageToRoom(SendMessageInfo sendMessageInfo) {
+        return sendMessageToRoom(sendMessageInfo, false);
+    }
+
+    public Mono<Void> sendMessageToRoom(SendMessageInfo sendMessageInfo, boolean isSystem) {
         Long roomId = sendMessageInfo.getRoomId();
         return chatRoomRepository.findById(roomId)
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("존재하지 않은 채팅방입니다.")))
@@ -38,7 +41,7 @@ public class ChatMessageService {
                 })
                 .flatMap(savedMsg  -> {
                     // 채팅방에 새 메세지를 구독자들에게 알림
-                    return broadcastMsg(roomId, savedMsg, false);
+                    return broadcastMsg(roomId, savedMsg, isSystem);
                 });
     }
 

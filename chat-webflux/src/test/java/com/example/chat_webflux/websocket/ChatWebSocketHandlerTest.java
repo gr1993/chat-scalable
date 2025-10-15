@@ -137,6 +137,29 @@ public class ChatWebSocketHandlerTest {
         ).block();
     }
 
+    /**
+     * 채팅방 입장 메시지 구독 통합 테스트
+     */
+    @Test
+    void enterRoom_성공() throws Exception {
+        getMsgSubsciptionTest(
+                false,
+                (session, roomId, userId) -> chatRoomService.enterRoom(roomId, userId).thenReturn("")
+        );
+    }
+
+    /**
+     * 채팅방 퇴장 메시지 구독 통합 테스트
+     */
+    @Test
+    void exitRoom_성공() throws Exception {
+        getMsgSubsciptionTest(
+                false,
+                (session, roomId, userId) -> chatRoomService.exitRoom(roomId, userId).thenReturn("")
+        );
+    }
+
+
     private void getMsgSubsciptionTest(boolean isUserMsg, TriFunction<WebSocketSession, Long, String, Mono<String>> function) {
         // given
         String roomName = "park";
