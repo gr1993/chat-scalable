@@ -28,6 +28,11 @@ public class ChatWebSocketHandler implements WebSocketHandler {
         String sessionId = session.getId();
         Sinks.Many<String> sessionSink = chatSessionManager.createSessionSink(sessionId);
 
+        // 연결 직후 클라이언트에게 sessionId 전송
+        sessionSink.tryEmitNext(
+                "{\"type\": \"session-info\", \"sessionId\": \"" + sessionId + "\"}"
+        );
+
         Mono<Void> input = session.receive()
                 .map(WebSocketMessage::getPayloadAsText)
                 .doOnNext(message -> jsonMessageRouter.handleJsonMessage(sessionSink, session, message))
