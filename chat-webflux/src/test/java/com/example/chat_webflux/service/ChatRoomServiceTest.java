@@ -2,8 +2,10 @@ package com.example.chat_webflux.service;
 
 import com.example.chat_webflux.common.ChatRoomManager;
 import com.example.chat_webflux.dto.ChatRoomInfo;
+import com.example.chat_webflux.dto.SendMessageInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatRoom;
+import com.example.chat_webflux.entity.ChatUser;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -17,8 +19,7 @@ import reactor.core.publisher.Sinks;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -29,6 +30,9 @@ public class ChatRoomServiceTest {
 
     @InjectMocks
     private ChatRoomService chatRoomService;
+
+    @Mock
+    private ChatMessageService chatMessageService;
 
     @Mock
     private ChatRoomRepository chatRoomRepository;
@@ -80,5 +84,35 @@ public class ChatRoomServiceTest {
         // then
         verify(chatRoomRepository).save(any(ChatRoom.class));
         verify(mockSink).tryEmitNext(anyString());
+    }
+
+    @Test
+    void enterRoom_성공() {
+        // given
+        ChatRoom chatRoom = new ChatRoom("park");
+        ChatUser chatUser = new ChatUser("kang");
+        when(chatMessageService.sendMessageToRoom(any(SendMessageInfo.class), eq(true)))
+                .thenReturn(Mono.empty());
+
+        // when
+        chatRoomService.enterRoom(chatRoom.getId(), chatUser.getId()).block();
+
+        // then
+        verify(chatMessageService).sendMessageToRoom(any(SendMessageInfo.class), eq(true));
+    }
+
+    @Test
+    void exitRoom_성공() {
+        // given
+        ChatRoom chatRoom = new ChatRoom("park");
+        ChatUser chatUser = new ChatUser("kang");
+        when(chatMessageService.sendMessageToRoom(any(SendMessageInfo.class), eq(true)))
+                .thenReturn(Mono.empty());
+
+        // when
+        chatRoomService.exitRoom(chatRoom.getId(), chatUser.getId()).block();
+
+        // then
+        verify(chatMessageService).sendMessageToRoom(any(SendMessageInfo.class), eq(true));
     }
 }
