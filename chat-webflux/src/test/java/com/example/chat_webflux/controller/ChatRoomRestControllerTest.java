@@ -1,6 +1,7 @@
 package com.example.chat_webflux.controller;
 
 import com.example.chat_webflux.common.RoomUserSessionManager;
+import com.example.chat_webflux.dto.WebSocketRoomUser;
 import com.example.chat_webflux.service.ChatRoomService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,5 +68,54 @@ public class ChatRoomRestControllerTest {
                 .jsonPath("$.data").doesNotExist();
 
         verify(chatRoomService).createRoom(name);
+    }
+
+    @Test
+    void enterRoom_성공() throws Exception {
+        //given
+        Long roomId = 1L;
+        String userId = "park";
+        String sessionId = "ABCDEFG";
+
+        when(chatRoomService.enterRoom(any(Long.class), any(String.class))).thenReturn(Mono.empty());
+
+        //when & then
+        webTestClient.post()
+                .uri("/api/room/" + roomId + "/enter")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .header("X-Session-Id", sessionId)
+                .body(BodyInserters.fromFormData("userId", userId))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.success").isEqualTo(true)
+                .jsonPath("$.message").isEqualTo("요청 성공")
+                .jsonPath("$.data").doesNotExist();
+
+        verify(roomUserSessionManager).addRoomUserSession(sessionId, new WebSocketRoomUser(roomId, userId));
+        verify(chatRoomService).enterRoom(roomId, userId);
+    }
+
+    @Test
+    void exitRoom_성공() throws Exception {
+        //given
+        Long roomId = 1L;
+        String userId = "park";
+
+        when(chatRoomService.exitRoom(any(Long.class), any(String.class))).thenReturn(Mono.empty());
+
+        //when & then
+        webTestClient.post()
+                .uri("/api/room/" + roomId + "/exit")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters.fromFormData("userId", userId))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.success").isEqualTo(true)
+                .jsonPath("$.message").isEqualTo("요청 성공")
+                .jsonPath("$.data").doesNotExist();
+
+        verify(chatRoomService).exitRoom(roomId, userId);
     }
 }

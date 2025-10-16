@@ -3,6 +3,7 @@ package com.example.chat_webflux.websocket;
 import com.example.chat_webflux.common.ChatSessionManager;
 import com.example.chat_webflux.common.RoomUserSessionManager;
 import com.example.chat_webflux.dto.WebSocketRoomUser;
+import com.example.chat_webflux.service.ChatRoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -16,6 +17,7 @@ import reactor.core.publisher.Sinks;
 @RequiredArgsConstructor
 public class ChatWebSocketHandler implements WebSocketHandler {
 
+    private final ChatRoomService chatRoomService;
     private final JsonMessageRouter jsonMessageRouter;
     private final ChatSessionManager chatSessionManager;
     private final RoomUserSessionManager roomUserSessionManager;
@@ -35,7 +37,7 @@ public class ChatWebSocketHandler implements WebSocketHandler {
                     WebSocketRoomUser roomUser = roomUserSessionManager.removeUserSession(sessionId);
                     if (roomUser != null) {
                         // 해당 사용자 퇴장 처리
-                        //chatRoomService.exitRoom(roomUser.getRoomId(), roomUser.getUserId());
+                        chatRoomService.exitRoom(roomUser.getRoomId(), roomUser.getUserId());
                     }
                 })
                 .then();

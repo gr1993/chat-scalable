@@ -3,13 +3,11 @@ package com.example.chat_webflux.controller;
 import com.example.chat_webflux.common.RoomUserSessionManager;
 import com.example.chat_webflux.dto.ApiResponse;
 import com.example.chat_webflux.dto.ChatRoomInfo;
+import com.example.chat_webflux.dto.WebSocketRoomUser;
 import com.example.chat_webflux.service.ChatRoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
@@ -37,6 +35,30 @@ public class ChatRoomRestController {
         return extractParamValueFromFormData(exchange, "name")
                 .flatMap(name -> {
                     return chatRoomService.createRoom(name)
+                            .thenReturn(ResponseEntity.ok(ApiResponse.ok()));
+                });
+    }
+
+    @PostMapping("/{roomId}/enter")
+    public Mono<ResponseEntity<ApiResponse<Void>>> enterRoom(
+            @PathVariable Long roomId,
+            @RequestHeader("X-Session-Id") String sessionId,
+            ServerWebExchange exchange) {
+
+        return extractParamValueFromFormData(exchange, "userId")
+                .flatMap(userId -> {
+                    roomUserSessionManager.addRoomUserSession(sessionId, new WebSocketRoomUser(roomId, userId));
+
+                    return chatRoomService.enterRoom(roomId, userId)
+                            .thenReturn(ResponseEntity.ok(ApiResponse.ok()));
+                });
+    }
+
+    @PostMapping("/{roomId}/exit")
+    public Mono<ResponseEntity<ApiResponse<Void>>> exitRoom(@PathVariable Long roomId, ServerWebExchange exchange) {
+        return extractParamValueFromFormData(exchange, "userId")
+                .flatMap(userId -> {
+                    return chatRoomService.exitRoom(roomId, userId)
                             .thenReturn(ResponseEntity.ok(ApiResponse.ok()));
                 });
     }
