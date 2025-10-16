@@ -38,7 +38,10 @@
 * redis-reactive
 
 ### 기능별 쓰기 절차
-RDBMS와 Kafka 간 데이터 일관성을 보장하기 위해 Transactional Outbox Pattern을 적용할 예정이다.
+RDBMS와 Kafka 간 데이터 일관성을 보장하기 위해 Transactional Outbox Pattern을 적용할 예정이다.  
+Redis는 쓰기 작업 전에 정합성을 검증하기 위한 조회 용도로는 적합하지 않다. 이는 쓰기 작업에서 데이터의  
+일관성과 정확성이 중요하기 때문이다. 따라서 Redis를 읽기 캐시로 사용하는 로직은 구현하지 않으며,  
+Kafka 메시지를 소비하는 비즈니스 로직 내에서 Redis에 데이터를 저장하는 용도로만 사용할 예정이다.  
 
 * 로그인
   * 아이디만 입력하는 간단한 절차로, 존재하지 않는 아이디의 경우 회원가입이 가능하다.
