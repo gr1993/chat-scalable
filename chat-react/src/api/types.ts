@@ -7,9 +7,9 @@ export interface ApiResponse<T> {
 export type ChatRoomInfo = {
   roomId: number;
   roomName: string;
-  lastId: number | null;
-  lastMessage: string | null;
-  lastDt: string | null;
+  lastId?: number | null;
+  lastMessage?: string | null;
+  lastDt?: string | null;
 };
 
 export type ChatMessageInfo = {

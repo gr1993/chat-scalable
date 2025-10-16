@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
 
-import type { CompatClient, IMessage } from '@stomp/stompjs';
-import { getWebSocketClient } from '@/common/socketClient';
+import { getWebSocket } from '@/common/socketClient';
 
 import FlexContainer from '@/components/common/FlexContainer';
 import ChatMessage from '@/components/ChatMessage';
@@ -11,7 +10,6 @@ import MessageBox from '@/components/MessageBox';
 import { useAppStore } from '@/store/useAppStore';
 import { useUserStore } from '@/store/useUserStore';
 import { useChatStore } from '@/store/useChatStore';
-import { useChatSubscribe } from '@/hooks/useChatSubscribe';
 import { useStrictEffect } from '@/hooks/useStrictEffect';
 import { handleApiResponse } from '@/api/apiUtils';
 import type { ChatMessageInfo } from '@/api/types';
@@ -32,16 +30,35 @@ const ChatView: React.FC = () => {
   const [messageList, setMessageList] = useState<ChatMessageInfo[] | null>([]);
   const chatBoxRef = useRef<HTMLDivElement>(null);
 
-  // 채팅방 메세지, 입장, 퇴장 정보 구독
-  useChatSubscribe(`/topic/message/${currentRoom?.id}`, (message: IMessage) => {
-    const payload: ChatMessageInfo = JSON.parse(message.body);
-    payload.position = payload.senderId === userId ? 'right' : 'left';
-    setMessageList((prev) => [...(prev ?? []), payload]);
-  });
-
   useStrictEffect(() => {
     if (wsSessionId) {
       setHeaderInfo(true, currentRoom?.name ?? '');
+
+      const ws = getWebSocket();
+      if (ws) {
+        // 채팅방 메시지, 입장, 퇴장 정보 구독 요청
+        ws.send(JSON.stringify({
+          type: "SUBSCRIBE",
+          destination: "/topic/message/" + currentRoom?.id,
+        }));
+
+        // 구독된 메시지 처리
+        ws.onmessage = (event) => {
+          const wsMsg = JSON.parse(event.data);
+          if(wsMsg.type == 'ROOM_MESSAGE') {
+            const data = wsMsg.data;
+            const payload: ChatMessageInfo = {
+              messageId: data.messageId,
+              senderId: data.senderId,
+              message: data.message,
+              sendDt: data.sendDt,
+              type: data.type,
+              position: data.senderId === userId ? 'right' : 'left',
+            }
+            setMessageList((prev) => [...(prev ?? []), payload]);
+          }
+        };
+      }
 
       // 새로고침 시 웹소켓 연결 시간을 기다리고 API 호출
       setTimeout(() => {
@@ -74,19 +91,19 @@ const ChatView: React.FC = () => {
   }, [messageList]);
 
   const sendMessageBtnClick = (message: string) => {
-    // 메세지 전송 웹소켓 API
-    const client: CompatClient | null = getWebSocketClient();
-    if (client == null) return;
-
-    client.send(
-      '/api/messages',
-      {},
-      JSON.stringify({
-        roomId: currentRoom?.id,
-        userId,
-        message,
-      })
-    );
+    const ws = getWebSocket();
+    if (ws) {
+      // 메세지 전송 웹소켓
+      ws.send(JSON.stringify({
+        type: "SEND",
+        destination: "/topic/message/" + currentRoom?.id,
+        data: {
+          roomId: currentRoom?.id,
+          userId,
+          message,
+        },
+      }));
+    }
   }
 
   return (

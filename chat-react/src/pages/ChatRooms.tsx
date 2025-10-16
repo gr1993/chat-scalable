@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
-import type { IMessage } from '@stomp/stompjs';
+import { getWebSocket } from '@/common/socketClient';
 
 import FlexContainer from '@/components/common/FlexContainer';
 import PrimaryButton from '@/components/common/PrimaryButton';
@@ -10,11 +10,11 @@ import ChatRoomCreateModal from '@/components/ChatRoomCreateModal';
 
 import { useAppStore } from '@/store/useAppStore';
 import { useChatStore } from '@/store/useChatStore';
+import { useStrictEffect } from '@/hooks/useStrictEffect';
 import { useNavigate } from 'react-router-dom';
 import { handleApiResponse } from '@/api/apiUtils';
 import type { ChatRoomInfo } from '@/api/types';
 import { getRoomList, createRoom } from '@/api/chatRoom';
-import { useChatSubscribe } from '@/hooks/useChatSubscribe';
 
 const RoomBox = styled.div`
   flex: 1;
@@ -37,14 +37,30 @@ const ChatRooms: React.FC = () => {
   const { setCurrentRoom } = useChatStore();
   const navigate = useNavigate();
 
-  // 채팅방 생성 구독
-  useChatSubscribe("/topic/rooms", (message: IMessage) => {
-    const payload: ChatRoomInfo = JSON.parse(message.body);
-    setRoomList((prev) => [...(prev ?? []), payload]);
-  });
-  
-  useEffect(() => {
+  useStrictEffect(() => {
     setHeaderInfo(true, "채팅방 목록");
+
+    const ws = getWebSocket();
+      if (ws) {
+        // 채팅방 생성 메시지 구독 요청
+        ws.send(JSON.stringify({
+          type: "SUBSCRIBE",
+          destination: "/topic/rooms",
+        }));
+
+        // 구독된 메시지 처리
+        ws.onmessage = (event) => {
+          const wsMsg = JSON.parse(event.data);
+          if(wsMsg.type == 'ROOM_MESSAGE') {
+            const data = wsMsg.data;
+            const payload: ChatRoomInfo = {
+              roomId: data.roomId,
+              roomName: data.roomName,
+            };
+            setRoomList((prev) => [...(prev ?? []), payload]);
+          }
+        };
+      }
 
     // 전체 채팅방 목록 조회 API
     handleApiResponse(

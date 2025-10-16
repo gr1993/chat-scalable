@@ -19,9 +19,15 @@ function App() {
   const { setWsSessionId } = useAppStore();
 
   useStrictEffect(() => {
-    connectWebSocket((client, sessionId) => {
-      setWsSessionId(sessionId);
-    });
+    const ws = connectWebSocket();
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'session-info') {
+        setWsSessionId(data.sessionId);
+      }
+    };
+
     return () => disconnectWebSocket();
   }, []);
 
