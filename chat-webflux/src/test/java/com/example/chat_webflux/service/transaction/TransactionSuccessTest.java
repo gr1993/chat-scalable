@@ -52,7 +52,7 @@ public class TransactionSuccessTest {
                 .verifyComplete();
 
         StepVerifier.create(outboxEventRepository.findAll())
-                .expectNextMatches(event -> EventType.CHAT_ROOM_CREATED.getValue().equals(event.getEventType()))
+                .expectNextMatches(event -> EventType.USER_CREATED.getValue().equals(event.getEventType()))
                 .verifyComplete();
     }
 }

@@ -33,7 +33,7 @@ public class UserService {
                 .flatMap(savedUser -> {
                     Map<String, Object> payloadMap = new HashMap<>();
                     payloadMap.put("id", savedUser.getId());
-                    return outboxEventService.saveOutboxEvent(EventType.CHAT_ROOM_CREATED.getValue(), payloadMap)
+                    return outboxEventService.saveOutboxEvent(EventType.USER_CREATED.getValue(), payloadMap)
                             .then();
                 });
     }
