@@ -1,9 +1,10 @@
-package com.example.chat_webflux.service;
+package com.example.chat_webflux.service.transaction;
 
 import com.example.chat_webflux.entity.EventType;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.example.chat_webflux.repository.OutboxEventRepository;
 import com.example.chat_webflux.repository.UserRepository;
+import com.example.chat_webflux.service.UserService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
