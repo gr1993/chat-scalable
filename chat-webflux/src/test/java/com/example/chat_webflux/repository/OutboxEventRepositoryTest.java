@@ -1,5 +1,6 @@
 package com.example.chat_webflux.repository;
 
+import com.example.chat_webflux.entity.EventType;
 import com.example.chat_webflux.entity.OutboxEvent;
 import com.example.chat_webflux.entity.OutboxEventStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -118,7 +119,7 @@ public class OutboxEventRepositoryTest {
         payloadMap.put("name", name);
 
         OutboxEvent outboxEvent = new OutboxEvent(UUID.randomUUID());
-        outboxEvent.setEventType("chatRoom.created");
+        outboxEvent.setEventType(EventType.CHAT_ROOM_CREATED.getValue());
         outboxEvent.setEventVersion("v1.0");
         String payloadJson = objectMapper.writeValueAsString(payloadMap);
         outboxEvent.setPayload(payloadJson);

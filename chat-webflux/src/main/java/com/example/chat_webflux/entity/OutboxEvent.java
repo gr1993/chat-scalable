@@ -38,6 +38,13 @@ public class OutboxEvent implements Persistable<UUID> {
         this.isNew = true;
     }
 
+    public OutboxEvent(String eventType) {
+        this.eventId = UUID.randomUUID();
+        this.eventType = eventType;
+        this.eventVersion = "v1.0";
+        this.isNew = true;
+    }
+
     @Override
     public UUID getId() {
         return eventId;

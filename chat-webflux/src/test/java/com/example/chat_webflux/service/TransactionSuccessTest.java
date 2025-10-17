@@ -1,5 +1,6 @@
 package com.example.chat_webflux.service;
 
+import com.example.chat_webflux.entity.EventType;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.example.chat_webflux.repository.OutboxEventRepository;
 import com.example.chat_webflux.repository.UserRepository;
@@ -50,7 +51,7 @@ public class TransactionSuccessTest {
                 .verifyComplete();
 
         StepVerifier.create(outboxEventRepository.findAll())
-                .expectNextMatches(event -> event.getEventType().equals("chatRoom.created"))
+                .expectNextMatches(event -> EventType.CHAT_ROOM_CREATED.getValue().equals(event.getEventType()))
                 .verifyComplete();
     }
 }
