@@ -6,10 +6,12 @@ import com.example.chat_webflux.dto.SendMessageInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.entity.ChatUser;
+import com.example.chat_webflux.entity.OutboxEvent;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,6 +20,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,6 +37,9 @@ public class ChatRoomServiceTest {
 
     @Mock
     private ChatMessageService chatMessageService;
+
+    @Mock
+    private OutboxEventService outboxEventService;
 
     @Mock
     private ChatRoomRepository chatRoomRepository;
@@ -70,6 +77,11 @@ public class ChatRoomServiceTest {
 
         when(chatRoomRepository.save(any(ChatRoom.class)))
                 .thenReturn(Mono.just(newChatRoom));
+
+        when(outboxEventService.saveOutboxEvent(
+                any(String.class),
+                ArgumentMatchers.<Map<String, Object>>any())
+        ).thenReturn(Mono.just(new OutboxEvent(UUID.randomUUID())));
 
         Sinks.Many<String> mockSink = mock(Sinks.Many.class);
         when(chatRoomManager.getChatServerSinks())
