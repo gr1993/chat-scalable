@@ -55,7 +55,9 @@ const ButtonGroup = styled.div`
   justify-content: space-between;
 `;
 
-const Button = styled.button<{ primary?: boolean }>`
+const Button = styled.button.withConfig({
+  shouldForwardProp: (prop) => prop !== 'primary',
+})<{ primary?: boolean }>`
   flex: 1;
   padding: 12px;
   border: none;

@@ -51,7 +51,7 @@ const ChatRooms: React.FC = () => {
         // 구독된 메시지 처리
         ws.onmessage = (event) => {
           const wsMsg = JSON.parse(event.data);
-          if(wsMsg.type == 'ROOM_MESSAGE') {
+          if(wsMsg.type == 'ROOM_CREATED') {
             const data = wsMsg.data;
             const payload: ChatRoomInfo = {
               roomId: data.roomId,
