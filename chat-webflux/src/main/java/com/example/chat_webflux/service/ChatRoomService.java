@@ -5,7 +5,7 @@ import com.example.chat_webflux.dto.ChatRoomInfo;
 import com.example.chat_webflux.dto.SendMessageInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatRoom;
-import com.example.chat_webflux.entity.EventType;
+import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,7 +49,7 @@ public class ChatRoomService {
                     Map<String, Object> payloadMap = new HashMap<>();
                     payloadMap.put("id", savedRoom.getId());
                     payloadMap.put("name", savedRoom.getName());
-                    return outboxEventService.saveOutboxEvent(EventType.CHAT_ROOM_CREATED.getValue(), payloadMap)
+                    return outboxEventService.saveOutboxEvent(KafkaTopics.CHAT_ROOM_CREATED, payloadMap)
                             .thenReturn(savedRoom);
                 })
                 .flatMap(savedRoom -> {

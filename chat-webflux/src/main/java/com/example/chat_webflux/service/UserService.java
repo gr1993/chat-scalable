@@ -1,7 +1,7 @@
 package com.example.chat_webflux.service;
 
 import com.example.chat_webflux.entity.ChatUser;
-import com.example.chat_webflux.entity.EventType;
+import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ public class UserService {
                 .flatMap(savedUser -> {
                     Map<String, Object> payloadMap = new HashMap<>();
                     payloadMap.put("id", savedUser.getId());
-                    return outboxEventService.saveOutboxEvent(EventType.USER_CREATED.getValue(), payloadMap)
+                    return outboxEventService.saveOutboxEvent(KafkaTopics.CHAT_USER_CREATED, payloadMap)
                             .then();
                 });
     }

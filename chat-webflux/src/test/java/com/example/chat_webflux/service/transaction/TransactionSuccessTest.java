@@ -1,6 +1,6 @@
 package com.example.chat_webflux.service.transaction;
 
-import com.example.chat_webflux.entity.EventType;
+import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.example.chat_webflux.repository.OutboxEventRepository;
 import com.example.chat_webflux.repository.UserRepository;
@@ -56,7 +56,7 @@ public class TransactionSuccessTest {
                 .verifyComplete();
 
         StepVerifier.create(outboxEventRepository.findAll())
-                .expectNextMatches(event -> EventType.USER_CREATED.getValue().equals(event.getEventType()))
+                .expectNextMatches(event -> KafkaTopics.CHAT_USER_CREATED.equals(event.getEventType()))
                 .verifyComplete();
     }
 
@@ -77,7 +77,7 @@ public class TransactionSuccessTest {
                 .verifyComplete();
 
         StepVerifier.create(outboxEventRepository.findAll())
-                .expectNextMatches(event -> EventType.CHAT_ROOM_CREATED.getValue().equals(event.getEventType()))
+                .expectNextMatches(event -> KafkaTopics.CHAT_ROOM_CREATED.equals(event.getEventType()))
                 .verifyComplete();
     }
 }

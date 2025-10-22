@@ -1,8 +1,8 @@
 package com.example.chat_webflux.repository;
 
-import com.example.chat_webflux.entity.EventType;
 import com.example.chat_webflux.entity.OutboxEvent;
 import com.example.chat_webflux.entity.OutboxEventStatus;
+import com.example.chat_webflux.kafka.KafkaTopics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -119,7 +119,7 @@ public class OutboxEventRepositoryTest {
         payloadMap.put("name", name);
 
         OutboxEvent outboxEvent = new OutboxEvent(UUID.randomUUID());
-        outboxEvent.setEventType(EventType.CHAT_ROOM_CREATED.getValue());
+        outboxEvent.setEventType(KafkaTopics.CHAT_ROOM_CREATED);
         outboxEvent.setEventVersion("v1.0");
         String payloadJson = objectMapper.writeValueAsString(payloadMap);
         outboxEvent.setPayload(payloadJson);
