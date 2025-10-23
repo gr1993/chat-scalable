@@ -3,6 +3,10 @@ package com.example.chat_webflux.config;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
@@ -13,6 +17,15 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 public class RedisConfig {
+
+    @Value("${spring.data.redis.host}")
+    private String host;
+
+    @Value("${spring.data.redis.port}")
+    private int port;
+
+    private static final String REDISSON_HOST_PREFIX = "redis://";
+
 
     @Bean
     public Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer() {
@@ -37,5 +50,14 @@ public class RedisConfig {
                 .build();
 
         return new ReactiveRedisTemplate<>(factory, serializationContext);
+    }
+
+    @Bean
+    public RedissonClient redissonClient() {
+        RedissonClient redissonClient = null;
+        Config config = new Config();
+        config.useSingleServer().setAddress(REDISSON_HOST_PREFIX + host + ":" + port);
+        redissonClient = Redisson.create(config);
+        return redissonClient;
     }
 }

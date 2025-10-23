@@ -37,6 +37,8 @@
   * r2dbc-h2 : 테스트 전용 R2DBC 드라이버
 * redis
   * redis-reactive
+  * redisson : 분산 락 사용할 Redis Client
+  * embedded-redis
 * kafka
   * reactor-kafka
   * spring-kafka-test : @EmbeddedKafka 사용
