@@ -1,19 +1,24 @@
 package com.example.chat_webflux.service;
 
+import com.example.chat_webflux.entity.ChatUser;
 import com.example.chat_webflux.entity.OutboxEvent;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.OutboxEventRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.redisson.api.RedissonClient;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.mockito.Mockito.*;
 
@@ -31,6 +36,9 @@ public class OutboxEventServiceTest {
 
     @Mock
     private ReactiveKafkaProducerTemplate<String, Object> kafkaSender;
+
+    @Mock
+    private RedissonClient redissonClient;
 
 
     @Test
@@ -52,5 +60,52 @@ public class OutboxEventServiceTest {
         // then
         verify(objectMapper).writeValueAsString(any());
         verify(outboxEventRepository).save(any(OutboxEvent.class));
+    }
+
+    @Test
+    void checkOutboxAndPublish_성공() throws Exception {
+        // given
+        String id = "park";
+        Map<String, Object> payloadMap = new HashMap<>();
+        payloadMap.put("id", id);
+        OutboxEvent outboxEvent = getChatUserOutboxEvent(payloadMap);
+
+        when(outboxEventRepository.findByStatus(any(String.class)))
+                .thenReturn(Flux.just(outboxEvent));
+        when(objectMapper.readValue(any(String.class), any(TypeReference.class)))
+                .thenReturn(payloadMap);
+        when(kafkaSender.send(any(String.class), any(ChatUser.class)))
+                .thenReturn(Mono.empty());
+
+        // when
+        outboxEventService.checkOutboxAndPublish().block();
+
+        // then
+        verify(kafkaSender).send(eq(KafkaTopics.CHAT_USER_CREATED), any(ChatUser.class));
+    }
+
+    @Test
+    void checkOutboxAndPublish_조회결과없음() throws Exception {
+        // given
+        when(outboxEventRepository.findByStatus(any(String.class)))
+                .thenReturn(Flux.empty());
+
+        // when
+        outboxEventService.checkOutboxAndPublish().block();
+
+        // then
+        verify(objectMapper, never()).readValue(anyString(), any(TypeReference.class));
+        verify(kafkaSender, never()).send(anyString(), any());
+    }
+
+    private OutboxEvent getChatUserOutboxEvent(Map<String, Object> payloadMap) throws Exception {
+        ObjectMapper realObjectMapper = new ObjectMapper();
+
+        OutboxEvent outboxEvent = new OutboxEvent(UUID.randomUUID());
+        outboxEvent.setEventType(KafkaTopics.CHAT_USER_CREATED);
+        outboxEvent.setEventVersion("v1.0");
+        String payloadJson = realObjectMapper.writeValueAsString(payloadMap);
+        outboxEvent.setPayload(payloadJson);
+        return outboxEvent;
     }
 }
