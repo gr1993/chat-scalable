@@ -26,6 +26,10 @@ dependencies {
 	implementation 'org.postgresql:r2dbc-postgresql:1.0.7.RELEASE'
 
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
+	testImplementation('it.ozimov:embedded-redis:0.7.3') {
+		// 기존 로깅 구현체와 충돌하여 제외
+		exclude group: 'org.slf4j', module: 'slf4j-simple'
+	}
 
 	implementation 'org.springframework.kafka:spring-kafka'
 	implementation 'io.projectreactor.kafka:reactor-kafka'
