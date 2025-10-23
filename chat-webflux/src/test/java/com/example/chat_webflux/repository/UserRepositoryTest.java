@@ -1,8 +1,10 @@
 package com.example.chat_webflux.repository;
 
 import com.example.chat_webflux.entity.ChatUser;
+import com.example.chat_webflux.integration.EmbeddedRedisExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -13,6 +15,7 @@ import reactor.test.StepVerifier;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
+@ExtendWith(EmbeddedRedisExtension.class)
 @SpringBootTest
 @ActiveProfiles("test")
 public class UserRepositoryTest {

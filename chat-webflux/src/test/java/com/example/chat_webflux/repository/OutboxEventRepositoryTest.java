@@ -2,10 +2,12 @@ package com.example.chat_webflux.repository;
 
 import com.example.chat_webflux.entity.OutboxEvent;
 import com.example.chat_webflux.entity.OutboxEventStatus;
+import com.example.chat_webflux.integration.EmbeddedRedisExtension;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -18,6 +20,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@ExtendWith(EmbeddedRedisExtension.class)
 @SpringBootTest
 @ActiveProfiles("test")
 public class OutboxEventRepositoryTest {

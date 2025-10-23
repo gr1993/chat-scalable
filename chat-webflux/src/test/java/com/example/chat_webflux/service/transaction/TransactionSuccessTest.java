@@ -1,5 +1,6 @@
 package com.example.chat_webflux.service.transaction;
 
+import com.example.chat_webflux.integration.EmbeddedRedisExtension;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.example.chat_webflux.repository.OutboxEventRepository;
@@ -8,11 +9,13 @@ import com.example.chat_webflux.service.ChatRoomService;
 import com.example.chat_webflux.service.UserService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import reactor.test.StepVerifier;
 
+@ExtendWith(EmbeddedRedisExtension.class)
 @SpringBootTest
 @ActiveProfiles("test")
 public class TransactionSuccessTest {

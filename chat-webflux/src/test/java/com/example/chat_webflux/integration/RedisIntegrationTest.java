@@ -1,11 +1,11 @@
 package com.example.chat_webflux.integration;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 
 import java.util.concurrent.CountDownLatch;
@@ -13,11 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * Embedded Redis Server
- * 테스트 실행 시 자체 Redis를 띄움
- */
-@Import(LocalRedisConfig.class)
+@ExtendWith(EmbeddedRedisExtension.class)
 @SpringBootTest
 public class RedisIntegrationTest {
 

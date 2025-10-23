@@ -6,6 +6,7 @@ import com.example.chat_webflux.dto.ChatRoomInfo;
 import com.example.chat_webflux.dto.SendMessageInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.MessageType;
+import com.example.chat_webflux.integration.EmbeddedRedisExtension;
 import com.example.chat_webflux.repository.ChatMessageRepository;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.example.chat_webflux.repository.UserRepository;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -42,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 웹소켓 핸들러 통합 테스트 클래스
  */
 @Slf4j
+@ExtendWith(EmbeddedRedisExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 public class ChatWebSocketHandlerTest {

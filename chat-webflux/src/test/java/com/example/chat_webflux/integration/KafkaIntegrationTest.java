@@ -5,6 +5,7 @@ import com.example.chat_webflux.kafka.KafkaEvent;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
     partitions = 3,
     topics = { KafkaTopics.CHAT_USER_CREATED }
 )
+@ExtendWith(EmbeddedRedisExtension.class)
 @SpringBootTest
 public class KafkaIntegrationTest {
 
