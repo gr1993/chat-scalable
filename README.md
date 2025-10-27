@@ -80,4 +80,8 @@ Kafka 메시지를 소비하는 비즈니스 로직 내에서 Redis에 데이터
   * [Replication 구성하기](https://www.notion.so/Replication-27182094ef0a80cfbe96cf02ea555347)
   * [Failover(HA)와 Proxy Layer 구성하기](https://www.notion.so/Failover-HA-Proxy-Layer-27382094ef0a8083a27cde09c887c543)
 * Redis
+  * 이번 프로젝트에서는 Redis Sentinel 방식으로 구축
+  * [Redis Sentinel 구축](https://little-pecorino-c28.notion.site/Redis-Sentinel-26282094ef0a8053bff4d836e771ecfd)
+  * [Redis Cluster 구축](https://little-pecorino-c28.notion.site/Redis-Cluster-27082094ef0a80a0b574eb114c25398f)
 * Kafka
+  * [Kafka Cluster 구축](https://little-pecorino-c28.notion.site/Kafka-Zookeeper-Kraft-1a682094ef0a8048b229cc8fcef02e73)
