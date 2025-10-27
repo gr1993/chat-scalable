@@ -37,7 +37,7 @@ public class KafkaConfig {
 
         ReceiverOptions<String, KafkaEvent> receiverOptions = ReceiverOptions
                 .<String, KafkaEvent>create(consumerProps)
-                .subscription(List.of(KafkaTopics.CHAT_USER_CREATED, KafkaTopics.CHAT_ROOM_CREATED));
+                .subscription(List.of(KafkaTopics.CHAT_USER_CREATED, KafkaTopics.CHAT_ROOM_CREATED, KafkaTopics.CHAT_MESSAGE_CREATED));
 
         return new ReactiveKafkaConsumerTemplate<>(receiverOptions);
     }
@@ -52,7 +52,7 @@ public class KafkaConfig {
 
         ReceiverOptions<String, KafkaEvent> receiverOptions = ReceiverOptions
                 .<String, KafkaEvent>create(consumerProps)
-                .subscription(List.of(KafkaTopics.CHAT_MESSAGE_CREATED));
+                .subscription(List.of(KafkaTopics.CHAT_ROOM_NOTIFICATION, KafkaTopics.CHAT_MESSAGE_NOTIFICATION));
 
         return new ReactiveKafkaConsumerTemplate<>(receiverOptions);
     }
