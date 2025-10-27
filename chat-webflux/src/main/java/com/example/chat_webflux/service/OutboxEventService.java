@@ -1,5 +1,6 @@
 package com.example.chat_webflux.service;
 
+import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.entity.ChatUser;
 import com.example.chat_webflux.entity.OutboxEvent;
 import com.example.chat_webflux.entity.OutboxEventStatus;
@@ -65,9 +66,19 @@ public class OutboxEventService {
                     })
                     .flatMap(payloadMap -> {
                         Mono<Void> sendMono = Mono.empty();
+                        
+                        // Outbox 테이블 사용자 생성 이벤트 감지
                         if (KafkaTopics.CHAT_USER_CREATED.equals(event.getEventType())) {
                             ChatUser chatUser = new ChatUser((String)payloadMap.get("id"));
-                            kafkaSender.send(KafkaTopics.CHAT_USER_CREATED, chatUser);
+                            sendMono = kafkaSender.send(KafkaTopics.CHAT_USER_CREATED, chatUser).then();
+                        }
+                        // Outbox 테이블 채팅방 생성 이벤트 감지
+                        else if (KafkaTopics.CHAT_ROOM_CREATED.equals(event.getEventType())) {
+                            ChatRoom chatRoom = new ChatRoom(
+                                    Long.valueOf((Integer)payloadMap.get("id")),
+                                    (String)payloadMap.get("name")
+                            );
+                            sendMono = kafkaSender.send(KafkaTopics.CHAT_ROOM_CREATED, chatRoom).then();
                         }
                         return sendMono.then(Mono.just(event));
                     })
