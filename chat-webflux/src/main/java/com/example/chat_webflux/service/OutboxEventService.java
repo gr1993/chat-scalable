@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
@@ -21,6 +22,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OutboxEventService {
@@ -55,18 +57,26 @@ public class OutboxEventService {
 
     public Mono<Void> checkOutboxAndPublish() {
         return outboxEventRepository.findByStatus(OutboxEventStatus.PENDING.name())
-                .switchIfEmpty(Mono.empty())
+                .doOnNext(event -> log.info("Outbox Poll Message : {}", event))
                 .flatMap(event ->
                     Mono.fromCallable(() -> {
                         // JSON → Map<String, Object>
                         return objectMapper.readValue(event.getPayload(), new TypeReference<Map<String, Object>>() {});
                     })
                     .flatMap(payloadMap -> {
+                        Mono<Void> sendMono = Mono.empty();
                         if (KafkaTopics.CHAT_USER_CREATED.equals(event.getEventType())) {
                             ChatUser chatUser = new ChatUser((String)payloadMap.get("id"));
-                            return kafkaSender.send(KafkaTopics.CHAT_USER_CREATED, chatUser);
+                            kafkaSender.send(KafkaTopics.CHAT_USER_CREATED, chatUser);
                         }
-                        return Mono.empty();
+                        return sendMono.then(Mono.just(event));
+                    })
+                    .flatMap(eventToUpdate ->
+                        outboxEventRepository.updateStatus(eventToUpdate.getId(), OutboxEventStatus.SENT.name())
+                    )
+                    .onErrorResume(e -> {
+                        log.error("Failed to process outbox event: {}", event, e);
+                        return outboxEventRepository.updateStatus(event.getId(), OutboxEventStatus.FAILED.name());
                     })
                 )
                 .then();
