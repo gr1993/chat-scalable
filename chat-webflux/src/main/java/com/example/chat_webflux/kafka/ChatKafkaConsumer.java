@@ -42,7 +42,7 @@ public class ChatKafkaConsumer {
                     KafkaEvent event = record.value();
                     KafkaEventHandler<KafkaEvent> handler = (KafkaEventHandler<KafkaEvent>) handlerRegistry.getHandler(event.getClass());
                     if (handler != null) {
-                        handler.handle(event);
+                        handler.handle(event).subscribe();
                     } else {
                         log.warn("No handler found for event type: {}", event.getClass().getSimpleName());
                     }

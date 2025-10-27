@@ -1,5 +1,6 @@
 package com.example.chat_webflux.integration;
 
+import com.example.chat_webflux.entity.ChatUser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.redisson.api.RLock;
@@ -18,7 +19,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class RedisIntegrationTest {
 
     @Autowired
-    private ReactiveRedisTemplate<String, String> reactiveRedisTemplate;
+    private ReactiveRedisTemplate<String, String> redisStringTemplate;
+
+    @Autowired
+    private ReactiveRedisTemplate<String, Object> redisObjectTemplate;
 
     @Autowired
     private RedissonClient redissonClient;
@@ -30,11 +34,25 @@ public class RedisIntegrationTest {
         String address = "myHome";
 
         // when
-        reactiveRedisTemplate.opsForValue().set("address", address).block();
+        redisStringTemplate.opsForValue().set("address", address).block();
 
         // then
-        String savedAddress = reactiveRedisTemplate.opsForValue().get("address").block();
+        String savedAddress = redisStringTemplate.opsForValue().get("address").block();
         assertEquals(address, savedAddress);
+    }
+
+    @Test
+    void saveRedisObject_성공() {
+        // given
+        String id = "park";
+        ChatUser chatUser = new ChatUser(id);
+
+        // when
+        redisObjectTemplate.opsForValue().set("user:" + id, chatUser).block();
+
+        // then
+        ChatUser savedUser = (ChatUser) redisObjectTemplate.opsForValue().get("user:" + id).block();
+        assertEquals(chatUser.getId(), savedUser.getId());
     }
 
     @Test
