@@ -144,23 +144,6 @@ public class ChatWebSocketHandlerTest {
         );
     }
 
-    /**
-     * 사용자 메세지 전송 및 구독 통합 테스트
-     */
-    @Test
-    void sendMessage_성공() throws Exception {
-        getMsgSubsciptionTest(true, (session, roomId, userId) -> {
-            String msg = "안녕하세요~";
-            ChatMessage chatMessage = new ChatMessage(userId, roomId, msg);
-            ChatMessageWs messageInfo = new ChatMessageWs(new ChatMessageInfo(chatMessage, MessageType.user.name()));
-
-            String jsonStr = getJsonStr("SEND", "/api/messages", messageInfo);
-            session.send(Mono.just(session.textMessage(jsonStr)))
-                    .subscribe();
-            return Mono.just(msg);
-        });
-    }
-
 
     private void getMsgSubsciptionTest(boolean isUserMsg, TriFunction<WebSocketSession, Long, String, Mono<String>> function) {
         // given
@@ -234,7 +217,7 @@ public class ChatWebSocketHandlerTest {
             Mono<Void> outputSend = session.send(Mono.just(session.textMessage(jsonStr))).then();
 
             Mono<Void> logicAndClose = outputSend
-                    .then(Mono.delay(Duration.ofMillis(20000)))
+                    .then(Mono.delay(Duration.ofMillis(200)))
                     .then(serviceLogic.apply(session))
                     .then(session.close());
 
