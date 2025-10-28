@@ -40,7 +40,7 @@ public class ChatKafkaConsumer {
         consumer.receive()
                 .doOnNext(record -> {
                     KafkaEvent event = record.value();
-                    KafkaEventHandler<KafkaEvent> handler = (KafkaEventHandler<KafkaEvent>) handlerRegistry.getHandler(event.getClass());
+                    KafkaEventHandler<KafkaEvent> handler = handlerRegistry.getHandler(record.topic());
                     if (handler != null) {
                         handler.handle(event).subscribe();
                     } else {

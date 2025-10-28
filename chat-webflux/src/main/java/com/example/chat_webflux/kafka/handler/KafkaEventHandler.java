@@ -5,5 +5,5 @@ import reactor.core.publisher.Mono;
 
 public interface KafkaEventHandler<T extends KafkaEvent> {
     Mono<Void> handle(T event);
-    Class<T> getEventType();
+    String getTopic();
 }

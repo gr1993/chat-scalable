@@ -10,19 +10,19 @@ import java.util.Map;
 @Component
 public class KafkaEventHandlerRegistry {
 
-    private final Map<Class<? extends KafkaEvent>, KafkaEventHandler<?>> handlerMap = new HashMap<>();
+    private final Map<String, KafkaEventHandler<?>> handlerMap = new HashMap<>();
 
     /**
      * Spring이 모든 @Component 핸들러를 주입해줌
      */
     public KafkaEventHandlerRegistry(List<KafkaEventHandler<?>> handlers) {
         for (KafkaEventHandler<?> handler : handlers) {
-            handlerMap.put(handler.getEventType(), handler);
+            handlerMap.put(handler.getTopic(), handler);
         }
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends KafkaEvent> KafkaEventHandler<T> getHandler(Class<T> eventType) {
-        return (KafkaEventHandler<T>) handlerMap.get(eventType);
+    public <T extends KafkaEvent> KafkaEventHandler<T> getHandler(String topic) {
+        return (KafkaEventHandler<T>) handlerMap.get(topic);
     }
 }
