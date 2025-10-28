@@ -7,6 +7,7 @@ import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.entity.ChatUser;
 import com.example.chat_webflux.entity.OutboxEvent;
+import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -44,12 +45,6 @@ public class ChatRoomServiceTest {
     @Mock
     private ChatRoomRepository chatRoomRepository;
 
-    @Mock
-    private ChatRoomManager chatRoomManager;
-
-    @Mock
-    private ObjectMapper objectMapper;
-
 
     @Test
     void getRoomList_성공() {
@@ -83,19 +78,12 @@ public class ChatRoomServiceTest {
                 ArgumentMatchers.<Map<String, Object>>any())
         ).thenReturn(Mono.just(new OutboxEvent(UUID.randomUUID())));
 
-        Sinks.Many<String> mockSink = mock(Sinks.Many.class);
-        when(chatRoomManager.getChatServerSinks())
-                .thenReturn(mockSink);
-
-        when(objectMapper.writeValueAsString(any(WsJsonMessage.class)))
-                .thenReturn("{}");
-
         // when
         chatRoomService.createRoom(roomName).block();
 
         // then
         verify(chatRoomRepository).save(any(ChatRoom.class));
-        verify(mockSink).tryEmitNext(anyString());
+        verify(outboxEventService).saveOutboxEvent(eq(KafkaTopics.CHAT_ROOM_CREATED), any());
     }
 
     @Test

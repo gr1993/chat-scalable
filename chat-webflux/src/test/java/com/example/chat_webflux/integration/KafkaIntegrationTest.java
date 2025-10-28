@@ -49,7 +49,7 @@ public class KafkaIntegrationTest {
     @Test
     public void send_성공() throws Exception {
         // given
-        Thread.sleep(4000);
+//        Thread.sleep(4000);
         ChatUser chatUser = new ChatUser("park");
 
         // when

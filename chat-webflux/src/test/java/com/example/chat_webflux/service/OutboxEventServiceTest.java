@@ -76,6 +76,8 @@ public class OutboxEventServiceTest {
                 .thenReturn(payloadMap);
         when(kafkaSender.send(any(String.class), any(ChatUser.class)))
                 .thenReturn(Mono.empty());
+        when(outboxEventRepository.updateStatus(any(UUID.class), any(String.class)))
+                .thenReturn(Mono.empty());
 
         // when
         outboxEventService.checkOutboxAndPublish().block();

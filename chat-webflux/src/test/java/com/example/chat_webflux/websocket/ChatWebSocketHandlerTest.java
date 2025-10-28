@@ -5,8 +5,10 @@ import com.example.chat_webflux.dto.ChatMessageInfo;
 import com.example.chat_webflux.dto.ChatRoomInfo;
 import com.example.chat_webflux.dto.SendMessageInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
+import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.entity.MessageType;
 import com.example.chat_webflux.integration.EmbeddedRedisExtension;
+import com.example.chat_webflux.kafka.handler.ChatRoomNotificationHandler;
 import com.example.chat_webflux.repository.ChatMessageRepository;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.example.chat_webflux.repository.UserRepository;
@@ -67,6 +69,9 @@ public class ChatWebSocketHandlerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private ChatRoomNotificationHandler chatRoomNotificationHandler;
+
     @LocalServerPort
     private int port;
 
@@ -114,6 +119,7 @@ public class ChatWebSocketHandlerTest {
     @Test
     void createRoom_성공() throws Exception {
         // given
+        Long roomId = 1L;
         String roomName = "park";
         BlockingQueue<WsJsonMessage<ChatRoomInfo>> blockingQueue = new LinkedBlockingQueue<>();
 
@@ -122,7 +128,7 @@ public class ChatWebSocketHandlerTest {
             "/topic/rooms",
             new TypeReference<>() {},
             blockingQueue,
-            session -> chatRoomService.createRoom("park")
+            session -> chatRoomNotificationHandler.handle(new ChatRoom(roomId, roomName))
                 .then(Mono.fromCallable(() -> {
                     WsJsonMessage<ChatRoomInfo> wsMsg = blockingQueue.poll(5, TimeUnit.SECONDS);
                     assertNotNull(wsMsg);
