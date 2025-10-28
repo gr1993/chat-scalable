@@ -2,6 +2,7 @@ package com.example.chat_webflux.websocket;
 
 import com.example.chat_webflux.dto.SendMessageInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
+import com.example.chat_webflux.entity.ChatMessage;
 import com.example.chat_webflux.service.ChatMessageService;
 import com.example.chat_webflux.service.SubscriptionService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -46,7 +47,8 @@ public class JsonMessageRouter {
                 jsonMessage,
                 new TypeReference<WsJsonMessage<SendMessageInfo>>() {}
         );
-        chatMessageService.sendMessageToRoom(wsJsonMessage.getData())
+
+        chatMessageService.sendChatMessageKafkaEvent(new ChatMessage(wsJsonMessage.getData()), false)
                 .subscribe();
     }
 

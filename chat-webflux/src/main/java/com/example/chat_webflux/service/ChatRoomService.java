@@ -1,7 +1,7 @@
 package com.example.chat_webflux.service;
 
 import com.example.chat_webflux.dto.ChatRoomInfo;
-import com.example.chat_webflux.dto.SendMessageInfo;
+import com.example.chat_webflux.entity.ChatMessage;
 import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.ChatRoomRepository;
@@ -51,15 +51,15 @@ public class ChatRoomService {
      * 채팅방에 입장
      */
     public Mono<Void> enterRoom(Long roomId, String userId) {
-        SendMessageInfo sendMessageInfo = new SendMessageInfo(roomId, userId, userId + "님이 입장하셨습니다.");
-        return chatMessageService.sendMessageToRoom(sendMessageInfo, true);
+        ChatMessage chatMessage = new ChatMessage(userId, roomId, userId + "님이 입장하셨습니다.");
+        return chatMessageService.sendChatMessageKafkaEvent(chatMessage, true);
     }
 
     /**
      * 채팅방에서 퇴장
      */
     public Mono<Void> exitRoom(Long roomId, String userId) {
-        SendMessageInfo sendMessageInfo = new SendMessageInfo(roomId, userId, userId + "님이 퇴장하셨습니다.");
-        return chatMessageService.sendMessageToRoom(sendMessageInfo, true);
+        ChatMessage chatMessage = new ChatMessage(userId, roomId, userId + "님이 퇴장하셨습니다.");
+        return chatMessageService.sendChatMessageKafkaEvent(chatMessage, true);
     }
 }

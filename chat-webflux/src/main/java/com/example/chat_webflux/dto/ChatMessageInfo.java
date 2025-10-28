@@ -1,12 +1,13 @@
 package com.example.chat_webflux.dto;
 
 import com.example.chat_webflux.entity.ChatMessage;
+import com.example.chat_webflux.kafka.KafkaEvent;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class ChatMessageInfo {
+public class ChatMessageInfo implements KafkaEvent {
     private Long messageId;
     private String senderId;
     private String message;

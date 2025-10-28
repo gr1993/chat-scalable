@@ -2,17 +2,20 @@ package com.example.chat_webflux.service;
 
 import com.example.chat_webflux.common.ChatRoomManager;
 import com.example.chat_webflux.dto.ChatMessageInfo;
-import com.example.chat_webflux.dto.SendMessageInfo;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatMessage;
 import com.example.chat_webflux.entity.MessageType;
+import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.ChatMessageRepository;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.kafka.sender.SenderRecord;
 
 @Service
 @RequiredArgsConstructor
@@ -22,38 +25,51 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomManager chatRoomManager;
     private final ObjectMapper objectMapper;
+    private final ReactiveKafkaProducerTemplate<String, Object> kafkaSender;
 
-    public Mono<Void> sendMessageToRoom(SendMessageInfo sendMessageInfo) {
-        return sendMessageToRoom(sendMessageInfo, false);
+    /**
+     * CHAT_MESSAGE_CREATED, CHAT_MESSAGE_NOTIFICATION 두 토픽에 동시에 전송
+     */
+    public Mono<Void> sendChatMessageKafkaEvent(ChatMessage chatMessage, boolean isSystem) {
+        String type = isSystem ? MessageType.system.name() : MessageType.user.name();
+
+        return kafkaSender.sendTransactionally(
+                Flux.just(
+                        SenderRecord.create(
+                                KafkaTopics.CHAT_MESSAGE_CREATED,
+                                null,
+                                null,
+                                chatMessage.getRoomId().toString(),
+                                chatMessage,
+                                null
+                        ),
+                        SenderRecord.create(
+                                KafkaTopics.CHAT_MESSAGE_NOTIFICATION,
+                                null,
+                                null,
+                                chatMessage.getRoomId().toString(),
+                                new ChatMessageInfo(chatMessage, type),
+                                null
+                        )
+                )
+        ).then();
     }
 
-    public Mono<Void> sendMessageToRoom(SendMessageInfo sendMessageInfo, boolean isSystem) {
-        Long roomId = sendMessageInfo.getRoomId();
+    public Mono<Void> saveChatMessage(ChatMessage chatMessage) {
+        Long roomId = chatMessage.getRoomId();
         return chatRoomRepository.findById(roomId)
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("존재하지 않은 채팅방입니다.")))
-                .flatMap(room -> {
-                    ChatMessage chatMessage = new ChatMessage(
-                            sendMessageInfo.getUserId(),
-                            sendMessageInfo.getRoomId(),
-                            sendMessageInfo.getMessage()
-                    );
-                    return chatMessageRepository.save(chatMessage);
-                })
-                .flatMap(savedMsg  -> {
-                    // 채팅방에 새 메세지를 구독자들에게 알림
-                    return broadcastMsg(roomId, savedMsg, isSystem);
-                });
+                .flatMap(room ->
+                    chatMessageRepository.save(chatMessage).then()
+                );
     }
 
-    private Mono<Void> broadcastMsg(Long roomId, ChatMessage chatMessage, boolean isSystem) {
+    public Mono<Void> broadcastMsg(ChatMessageInfo messageInfo) {
         try {
-            ChatMessageInfo messageInfo = new ChatMessageInfo(
-                    chatMessage,
-                    isSystem ? MessageType.system.name() : MessageType.user.name()
-            );
+            Long roomId = messageInfo.getMessageId();
             WsJsonMessage<ChatMessageInfo> wsMsg = new WsJsonMessage<>(
                     "ROOM_MESSAGE",
-                    "/topic/message/" + chatMessage.getRoomId(),
+                    "/topic/message/" + roomId,
                     messageInfo
             );
 

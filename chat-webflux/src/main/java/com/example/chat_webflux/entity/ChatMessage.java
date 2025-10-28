@@ -1,5 +1,6 @@
 package com.example.chat_webflux.entity;
 
+import com.example.chat_webflux.dto.SendMessageInfo;
 import com.example.chat_webflux.kafka.KafkaEvent;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,5 +26,11 @@ public class ChatMessage implements KafkaEvent {
         this.roomId = roomId;
         this.message = message;
         this.sendDt = LocalDateTime.now();
+    }
+
+    public ChatMessage(SendMessageInfo sendMessageInfo) {
+        this.senderId = sendMessageInfo.getUserId();
+        this.roomId = sendMessageInfo.getRoomId();
+        this.message = sendMessageInfo.getMessage();
     }
 }
