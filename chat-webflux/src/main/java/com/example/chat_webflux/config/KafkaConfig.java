@@ -54,6 +54,9 @@ public class KafkaConfig {
         Map<String, Object> consumerProps = new HashMap<>(props.buildConsumerProperties());
         consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "chat-server-" + UUID.randomUUID()); // 랜덤 그룹 아이디
         consumerProps.put(ConsumerConfig.CLIENT_ID_CONFIG, "chat-message-consumer-" + UUID.randomUUID());
+        // group.id가 매번 랜덤으로 바뀌므로 Kafka는 새로운 소비자로 인식
+        // 따라서 자동 오프셋 초기값(auto.offset.reset)을 'latest'로 설정해 최신 메시지부터 읽도록 설정
+        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
 
         ReceiverOptions<String, KafkaEvent> receiverOptions = ReceiverOptions
                 .<String, KafkaEvent>create(consumerProps)
