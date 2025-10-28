@@ -1,17 +1,30 @@
 package com.example.chat_webflux.integration;
 
+import com.example.chat_webflux.entity.ChatMessage;
 import com.example.chat_webflux.entity.ChatUser;
-import com.example.chat_webflux.kafka.KafkaEvent;
 import com.example.chat_webflux.kafka.KafkaTopics;
+import com.example.chat_webflux.service.ChatMessageService;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.test.annotation.DirtiesContext;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.kafka.receiver.ReceiverOptions;
+import reactor.kafka.sender.SenderRecord;
+import reactor.test.StepVerifier;
+
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,42 +40,134 @@ import static org.junit.jupiter.api.Assertions.*;
         "security.protocol=PLAINTEXT"
     },
     partitions = 3,
-    topics = { KafkaTopics.CHAT_USER_CREATED }
+    topics = {
+            KafkaTopics.CHAT_USER_CREATED,
+            KafkaTopics.CHAT_MESSAGE_CREATED,
+            KafkaTopics.CHAT_MESSAGE_NOTIFICATION
+    }
 )
 @ExtendWith(EmbeddedRedisExtension.class)
 @SpringBootTest
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class KafkaIntegrationTest {
+
+    @Autowired
+    private ChatMessageService chatMessageService;
 
     @Autowired
     private ReactiveKafkaProducerTemplate<String, Object> kafkaSender;
 
-    @Autowired
-    @Qualifier("outboxReactiveKafkaConsumerTemplate")
-    private ReactiveKafkaConsumerTemplate<String, KafkaEvent> outboxConsumer;
-    private TestKafkaConsumer testKafkaConsumer;
+    private ReactiveKafkaConsumerTemplate<String, Object> kafkaConsumer;
 
+    @Autowired
+    private KafkaProperties kafkaProperties;
+
+
+    /**
+     * KafkaConfig에서 등록된 Consumer는 이미 구독중이므로 테스트용 Consumer를 별도로 생성
+     */
     @BeforeEach
     public void setup() {
-        testKafkaConsumer = new TestKafkaConsumer(outboxConsumer);
+        Map<String, Object> props = new HashMap<>(kafkaProperties.buildConsumerProperties());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group-" + UUID.randomUUID());
+
+        ReceiverOptions<String, Object> options = ReceiverOptions.<String, Object>create(props)
+                .subscription(List.of(KafkaTopics.CHAT_USER_CREATED, KafkaTopics.CHAT_MESSAGE_CREATED, KafkaTopics.CHAT_MESSAGE_NOTIFICATION));
+
+        kafkaConsumer = new ReactiveKafkaConsumerTemplate<>(options);
     }
 
+
     @Test
-    public void send_성공() throws Exception {
+    void send_성공() {
         // given
-//        Thread.sleep(4000);
         ChatUser chatUser = new ChatUser("park");
 
         // when
-        kafkaSender.send(KafkaTopics.CHAT_USER_CREATED, chatUser)
-                .doOnSuccess(result -> System.out.println("Sent: " + result.recordMetadata()))
-                .doOnError(error -> System.err.println("Failed to send: " + error.getMessage()))
-                .block();
+        Mono<Void> sendMono = kafkaSender.sendTransactionally(
+                Flux.just(
+                        SenderRecord.create(
+                            KafkaTopics.CHAT_MESSAGE_CREATED,
+                            null,
+                            null,
+                            chatUser.getId().toString(),
+                            chatUser,
+                            null
+                        )
+                )
+        ).then();
+        Mono<ChatUser> result = kafkaConsumer.receiveAutoAck()
+                .map(ConsumerRecord::value)
+                .cast(ChatUser.class)
+                .next()
+                .delaySubscription(sendMono);
 
-        // then (구독 가능 시점 후 전송 처리 문제가 해결 안되서 주석처리
-//        KafkaEvent received = testKafkaConsumer.take();
-//        assertNotNull(received);
-//        assertInstanceOf(ChatUser.class, received);
-//        ChatUser receivedChatUser = (ChatUser) received;
-//        assertEquals(chatUser.getId(), receivedChatUser.getId());
+        // then
+        ChatUser received = result.block(Duration.ofSeconds(5));
+        assertNotNull(received);
+        assertEquals("park", received.getId());
+    }
+
+    /**
+     * 여러 토픽에 메시지 발행(트랜잭션)
+     */
+    @Test
+    public void sendKafkaTx_성공() {
+        // given
+        ChatMessage chatMessage = new ChatMessage("park", 1L, "안녕하세요~");
+
+        // when
+        Mono<Void> sendMono = chatMessageService.sendChatMessageKafkaEvent(chatMessage, false);
+
+        // then
+        Flux<ConsumerRecord<String, Object>> consumedFlux = kafkaConsumer.receiveAutoAck()
+                .filter(record -> record.topic().equals(KafkaTopics.CHAT_MESSAGE_CREATED)
+                        || record.topic().equals(KafkaTopics.CHAT_MESSAGE_NOTIFICATION))
+                .take(2);
+
+        StepVerifier.create(sendMono.thenMany(consumedFlux))
+                .recordWith(ArrayList::new)
+                .expectNextCount(2)
+                .consumeRecordedWith(records -> {
+                    Set<String> topics = records.stream()
+                            .map(ConsumerRecord::topic)
+                            .collect(Collectors.toSet());
+                    assertTrue(topics.contains(KafkaTopics.CHAT_MESSAGE_CREATED));
+                    assertTrue(topics.contains(KafkaTopics.CHAT_MESSAGE_NOTIFICATION));
+                })
+                .verifyComplete();
+    }
+
+    /**
+     * 여러 토픽에 발행 시 실패 시나리오 테스트(트랜잭션)
+     */
+    @Test
+    public void sendKafkaTx_실패() {
+        // given
+        ChatMessage chatMessage = new ChatMessage("park", 1L, "안녕하세요~");
+        Object invalidValue = new Object() {  // Jackson 직렬화 불가
+            private void someMethod() {}
+        };
+
+        Flux<SenderRecord<String, Object, Integer>> records = Flux.just(
+                SenderRecord.create(KafkaTopics.CHAT_MESSAGE_CREATED, null, null,
+                        chatMessage.getRoomId().toString(), chatMessage, null),
+                SenderRecord.create(KafkaTopics.CHAT_MESSAGE_NOTIFICATION, null, null,
+                        chatMessage.getRoomId().toString(), invalidValue, null)
+        );
+
+        // then
+        Mono<Void> sendMono = kafkaSender.sendTransactionally(records).then();
+
+        // then
+        StepVerifier.create(sendMono)
+                .expectError()
+                .verify();
+
+        StepVerifier.create(kafkaConsumer.receiveAutoAck()
+                        .take(Duration.ofSeconds(3)))
+                .expectNextCount(0)
+                .thenCancel()
+                .verify();
     }
 }
