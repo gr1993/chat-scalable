@@ -74,8 +74,8 @@ public class OutboxEventServiceTest {
                 .thenReturn(Flux.just(outboxEvent));
         when(objectMapper.readValue(any(String.class), any(TypeReference.class)))
                 .thenReturn(payloadMap);
-        when(kafkaSender.send(any(String.class), any(ChatUser.class)))
-                .thenReturn(Mono.empty());
+        when(kafkaSender.sendTransactionally(any(Flux.class)))
+                .thenReturn(Flux.empty());
         when(outboxEventRepository.updateStatus(any(UUID.class), any(String.class)))
                 .thenReturn(Mono.empty());
 
@@ -83,7 +83,7 @@ public class OutboxEventServiceTest {
         outboxEventService.checkOutboxAndPublish().block();
 
         // then
-        verify(kafkaSender).send(eq(KafkaTopics.CHAT_USER_CREATED), any(ChatUser.class));
+        verify(kafkaSender).sendTransactionally(any(Flux.class));
     }
 
     @Test

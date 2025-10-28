@@ -18,6 +18,7 @@ import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.kafka.sender.SenderRecord;
 
 import java.time.Duration;
 import java.util.Map;
@@ -70,7 +71,7 @@ public class OutboxEventService {
                         // Outbox 테이블 사용자 생성 이벤트 감지
                         if (KafkaTopics.CHAT_USER_CREATED.equals(event.getEventType())) {
                             ChatUser chatUser = new ChatUser((String)payloadMap.get("id"));
-                            sendMono = kafkaSender.send(KafkaTopics.CHAT_USER_CREATED, chatUser).then();
+                            sendMono = sendKafkaEvent(KafkaTopics.CHAT_USER_CREATED, chatUser.getId(), chatUser);
                         }
                         // Outbox 테이블 채팅방 생성 이벤트 감지
                         else if (KafkaTopics.CHAT_ROOM_CREATED.equals(event.getEventType())) {
@@ -78,7 +79,7 @@ public class OutboxEventService {
                                     Long.valueOf((Integer)payloadMap.get("id")),
                                     (String)payloadMap.get("name")
                             );
-                            sendMono = kafkaSender.send(KafkaTopics.CHAT_ROOM_CREATED, chatRoom).then();
+                            sendMono = sendKafkaEvent(KafkaTopics.CHAT_ROOM_CREATED, chatRoom.getId().toString(), chatRoom);
                         }
                         return sendMono.then(Mono.just(event));
                     })
@@ -120,5 +121,20 @@ public class OutboxEventService {
                     return Mono.empty();
                 }
         );
+    }
+
+    private Mono<Void> sendKafkaEvent(String topic, String key, Object value) {
+        return kafkaSender.sendTransactionally(
+                Flux.just(
+                        SenderRecord.create(
+                                topic,
+                                null,
+                                null,
+                                key,
+                                value,
+                                null
+                        )
+                )
+        ).then();
     }
 }
