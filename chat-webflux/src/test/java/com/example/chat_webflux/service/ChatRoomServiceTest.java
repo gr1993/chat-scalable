@@ -1,15 +1,12 @@
 package com.example.chat_webflux.service;
 
-import com.example.chat_webflux.common.ChatRoomManager;
 import com.example.chat_webflux.dto.ChatRoomInfo;
-import com.example.chat_webflux.dto.SendMessageInfo;
-import com.example.chat_webflux.dto.WsJsonMessage;
+import com.example.chat_webflux.entity.ChatMessage;
 import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.entity.ChatUser;
 import com.example.chat_webflux.entity.OutboxEvent;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.ChatRoomRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
@@ -18,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 
 import java.util.List;
 import java.util.Map;
@@ -26,9 +22,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class ChatRoomServiceTest {
@@ -60,6 +54,7 @@ public class ChatRoomServiceTest {
         List<ChatRoomInfo> roomList = chatRoomService.getRoomList().block();
 
         // then
+        assertNotNull(roomList);
         assertFalse(roomList.isEmpty());
         assertEquals(2, roomList.size());
     }
@@ -91,14 +86,14 @@ public class ChatRoomServiceTest {
         // given
         ChatRoom chatRoom = new ChatRoom("park");
         ChatUser chatUser = new ChatUser("kang");
-        when(chatMessageService.sendMessageToRoom(any(SendMessageInfo.class), eq(true)))
+        when(chatMessageService.sendChatMessageKafkaEvent(any(ChatMessage.class), eq(true)))
                 .thenReturn(Mono.empty());
 
         // when
         chatRoomService.enterRoom(chatRoom.getId(), chatUser.getId()).block();
 
         // then
-        verify(chatMessageService).sendMessageToRoom(any(SendMessageInfo.class), eq(true));
+        verify(chatMessageService).sendChatMessageKafkaEvent(any(ChatMessage.class), eq(true));
     }
 
     @Test
@@ -106,13 +101,13 @@ public class ChatRoomServiceTest {
         // given
         ChatRoom chatRoom = new ChatRoom("park");
         ChatUser chatUser = new ChatUser("kang");
-        when(chatMessageService.sendMessageToRoom(any(SendMessageInfo.class), eq(true)))
+        when(chatMessageService.sendChatMessageKafkaEvent(any(ChatMessage.class), eq(true)))
                 .thenReturn(Mono.empty());
 
         // when
         chatRoomService.exitRoom(chatRoom.getId(), chatUser.getId()).block();
 
         // then
-        verify(chatMessageService).sendMessageToRoom(any(SendMessageInfo.class), eq(true));
+        verify(chatMessageService).sendChatMessageKafkaEvent(any(ChatMessage.class), eq(true));
     }
 }

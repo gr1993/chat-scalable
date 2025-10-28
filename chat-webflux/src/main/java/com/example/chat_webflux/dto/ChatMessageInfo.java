@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 public class ChatMessageInfo implements KafkaEvent {
     private Long messageId;
     private String senderId;
+    private Long roomId;
     private String message;
     private String sendDt;
     private String type;
@@ -17,6 +18,7 @@ public class ChatMessageInfo implements KafkaEvent {
     public ChatMessageInfo(ChatMessage chatMessage, String type) {
         this.messageId = chatMessage.getId();
         this.senderId = chatMessage.getSenderId();
+        this.roomId = chatMessage.getRoomId();
         this.message = chatMessage.getMessage();
         this.sendDt = chatMessage.getSendDt().toString();
         this.type = type;

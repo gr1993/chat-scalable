@@ -2,6 +2,7 @@ package com.example.chat_webflux.service;
 
 import com.example.chat_webflux.common.ChatRoomManager;
 import com.example.chat_webflux.dto.ChatMessageInfo;
+import com.example.chat_webflux.dto.ChatMessageWs;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatMessage;
 import com.example.chat_webflux.entity.MessageType;
@@ -66,11 +67,11 @@ public class ChatMessageService {
 
     public Mono<Void> broadcastMsg(ChatMessageInfo messageInfo) {
         try {
-            Long roomId = messageInfo.getMessageId();
-            WsJsonMessage<ChatMessageInfo> wsMsg = new WsJsonMessage<>(
+            Long roomId = messageInfo.getRoomId();
+            WsJsonMessage<ChatMessageWs> wsMsg = new WsJsonMessage<>(
                     "ROOM_MESSAGE",
                     "/topic/message/" + roomId,
-                    messageInfo
+                    new ChatMessageWs(messageInfo)
             );
 
             Sinks.Many<String> roomSink = chatRoomManager.getRoomSink(roomId.toString());

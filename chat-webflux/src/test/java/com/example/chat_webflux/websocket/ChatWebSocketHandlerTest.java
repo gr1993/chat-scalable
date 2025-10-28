@@ -1,13 +1,12 @@
 package com.example.chat_webflux.websocket;
 
 import com.example.chat_webflux.common.TriFunction;
-import com.example.chat_webflux.dto.ChatMessageInfo;
-import com.example.chat_webflux.dto.ChatRoomInfo;
-import com.example.chat_webflux.dto.SendMessageInfo;
-import com.example.chat_webflux.dto.WsJsonMessage;
+import com.example.chat_webflux.dto.*;
+import com.example.chat_webflux.entity.ChatMessage;
 import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.entity.MessageType;
 import com.example.chat_webflux.integration.EmbeddedRedisExtension;
+import com.example.chat_webflux.kafka.handler.ChatMessageNotificationHandler;
 import com.example.chat_webflux.kafka.handler.ChatRoomNotificationHandler;
 import com.example.chat_webflux.repository.ChatMessageRepository;
 import com.example.chat_webflux.repository.ChatRoomRepository;
@@ -72,6 +71,9 @@ public class ChatWebSocketHandlerTest {
     @Autowired
     private ChatRoomNotificationHandler chatRoomNotificationHandler;
 
+    @Autowired
+    private ChatMessageNotificationHandler chatMessageNotificationHandler;
+
     @LocalServerPort
     private int port;
 
@@ -91,27 +93,6 @@ public class ChatWebSocketHandlerTest {
         chatRoomRepository.deleteAll().block();
     }
 
-
-    /**
-     * 메세지 전송 및 구독까지 통합 테스트
-     */
-    @Test
-    void sendMessage_성공() throws Exception {
-        getMsgSubsciptionTest(true, (session, roomId, userId) -> {
-            String message = "안녕하세요~";
-            SendMessageInfo messageInfo = new SendMessageInfo(
-                    roomId,
-                    userId,
-                    message
-            );
-
-            String jsonStr = getJsonStr("SEND", "/api/messages", messageInfo);
-            Mono<Void> outputSend = session.send(Mono.just(session.textMessage(jsonStr)))
-                    .then();
-            outputSend.subscribe();
-            return Mono.just(message);
-        });
-    }
 
     /**
      * 채팅방 생성 구독 통합 테스트
@@ -147,25 +128,37 @@ public class ChatWebSocketHandlerTest {
     }
 
     /**
-     * 채팅방 입장 메시지 구독 통합 테스트
+     * 시스템 메시지(채팅방 입장 메시지 등) 구독 통합 테스트
      */
     @Test
     void enterRoom_성공() throws Exception {
         getMsgSubsciptionTest(
                 false,
-                (session, roomId, userId) -> chatRoomService.enterRoom(roomId, userId).thenReturn("")
+                (session, roomId, userId) -> {
+                    String msg = userId + "님이 입장하셨습니다.";
+                    ChatMessage chatMessage = new ChatMessage(userId, roomId, msg);
+                    chatMessage.setId(1L);
+                    return chatMessageNotificationHandler.handle(new ChatMessageInfo(chatMessage, MessageType.system.name()))
+                            .thenReturn(msg);
+                }
         );
     }
 
     /**
-     * 채팅방 퇴장 메시지 구독 통합 테스트
+     * 사용자 메세지 전송 및 구독 통합 테스트
      */
     @Test
-    void exitRoom_성공() throws Exception {
-        getMsgSubsciptionTest(
-                false,
-                (session, roomId, userId) -> chatRoomService.exitRoom(roomId, userId).thenReturn("")
-        );
+    void sendMessage_성공() throws Exception {
+        getMsgSubsciptionTest(true, (session, roomId, userId) -> {
+            String msg = "안녕하세요~";
+            ChatMessage chatMessage = new ChatMessage(userId, roomId, msg);
+            ChatMessageWs messageInfo = new ChatMessageWs(new ChatMessageInfo(chatMessage, MessageType.user.name()));
+
+            String jsonStr = getJsonStr("SEND", "/api/messages", messageInfo);
+            session.send(Mono.just(session.textMessage(jsonStr)))
+                    .subscribe();
+            return Mono.just(msg);
+        });
     }
 
 
@@ -181,7 +174,7 @@ public class ChatWebSocketHandlerTest {
             userService.enterUser(userId).block();
         }
 
-        BlockingQueue<WsJsonMessage<ChatMessageInfo>> blockingQueue = new LinkedBlockingQueue<>();
+        BlockingQueue<WsJsonMessage<ChatMessageWs>> blockingQueue = new LinkedBlockingQueue<>();
 
         // when & then
         getSubscriptionTest(
@@ -190,13 +183,13 @@ public class ChatWebSocketHandlerTest {
                 blockingQueue,
                 session -> function.apply(session, roomId, userId)
                         .flatMap(message -> Mono.fromCallable(() -> {
-                            WsJsonMessage<ChatMessageInfo> wsMsg = blockingQueue.poll(5, TimeUnit.SECONDS);
+                            WsJsonMessage<ChatMessageWs> wsMsg = blockingQueue.poll(5, TimeUnit.SECONDS);
                             assertNotNull(wsMsg);
                             assertEquals("ROOM_MESSAGE", wsMsg.getType());
                             assertEquals("/topic/message/" + roomId, wsMsg.getDestination());
                             assertNotNull(wsMsg.getData());
 
-                            ChatMessageInfo chatMessageInfo = wsMsg.getData();
+                            ChatMessageWs chatMessageInfo = wsMsg.getData();
                             log.info("받은 메세지 객체 : {}", chatMessageInfo);
                             assertNotNull(chatMessageInfo);
                             assertNotNull(chatMessageInfo.getMessageId());
@@ -241,7 +234,7 @@ public class ChatWebSocketHandlerTest {
             Mono<Void> outputSend = session.send(Mono.just(session.textMessage(jsonStr))).then();
 
             Mono<Void> logicAndClose = outputSend
-                    .then(Mono.delay(Duration.ofMillis(200)))
+                    .then(Mono.delay(Duration.ofMillis(20000)))
                     .then(serviceLogic.apply(session))
                     .then(session.close());
 
