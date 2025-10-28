@@ -123,7 +123,7 @@ public class OutboxEventService {
         );
     }
 
-    private Mono<Void> sendKafkaEvent(String topic, String key, Object value) {
+    private <T> Mono<Void> sendKafkaEvent(String topic, String key, T value) {
         return kafkaSender.sendTransactionally(
                 Flux.just(
                         SenderRecord.create(

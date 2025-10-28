@@ -7,7 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.kafka.sender.SenderRecord;
 
 @Slf4j
 @Component
@@ -27,9 +29,18 @@ public class ChatRoomCreatedHandler implements KafkaEventHandler<ChatRoom> {
                 .set("room:" + event.getId(), event)
                 .then();
 
-        Mono<Void> notificationMono = kafkaSender
-                .send(KafkaTopics.CHAT_ROOM_NOTIFICATION, event)
-                .then();
+        Mono<Void> notificationMono = kafkaSender.sendTransactionally(
+                Flux.just(
+                        SenderRecord.create(
+                                KafkaTopics.CHAT_ROOM_NOTIFICATION,
+                                null,
+                                null,
+                                event.getId().toString(),
+                                event,
+                                null
+                        )
+                )
+        ).then();
 
         return redisSaveMono
                 .doOnSuccess(v -> log.info("Saved chat room {} to Redis", event.getId()))
