@@ -14,7 +14,7 @@ public class EmbeddedRedisSingleton {
 
     public static synchronized void start() {
         if (redisServer == null) {
-            redisServer = new RedisServer(6379);
+            redisServer = new RedisServer(6389);
             redisServer.start();
         }
     }
