@@ -29,20 +29,6 @@
 발행한다. 각 서버는 이 토픽을 구독하여 메시지를 소비하고, 각 서버의 메모리에 Room ID별로 저장된 웹소켓  
 연결 정보를 확인한다. 이후 해당 채팅방에 있는 사용자들에게만 메시지를 보내도록 처리할 것이다.
 
-### 백엔드 기술
-* Spring Boot 3.5.5 (JDK 21)
-* Spring Webflux 6.2.10
-* r2dbc
-  * r2dbc-postgresql
-  * r2dbc-h2 : 테스트 전용 R2DBC 드라이버
-* redis
-  * redis-reactive
-  * redisson : 분산 락 사용할 Redis Client
-  * embedded-redis
-* kafka
-  * reactor-kafka
-  * spring-kafka-test : @EmbeddedKafka 사용
-
 ### 기능별 쓰기 절차
 RDBMS와 Kafka 간 데이터 일관성을 보장하기 위해 Transactional Outbox Pattern을 적용할 예정이다.  
 Outbox 테이블의 대기 메시지는 Polling 방식으로 감지할 예정이며,  
