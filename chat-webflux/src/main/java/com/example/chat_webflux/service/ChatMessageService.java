@@ -11,6 +11,7 @@ import com.example.chat_webflux.repository.ChatMessageRepository;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -18,6 +19,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.kafka.sender.SenderRecord;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatMessageService {
@@ -53,7 +55,10 @@ public class ChatMessageService {
                                 null
                         )
                 )
-        ).then();
+        )
+        .doOnNext(r -> log.info("Kafka 전송 성공: {}", r))
+        .doOnError(e -> log.error("Kafka 전송 실패", e))
+        .then();
     }
 
     public Mono<Void> saveChatMessage(ChatMessage chatMessage) {

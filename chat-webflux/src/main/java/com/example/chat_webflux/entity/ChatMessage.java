@@ -32,5 +32,6 @@ public class ChatMessage implements KafkaEvent {
         this.senderId = sendMessageInfo.getUserId();
         this.roomId = sendMessageInfo.getRoomId();
         this.message = sendMessageInfo.getMessage();
+        this.sendDt = LocalDateTime.now();
     }
 }
