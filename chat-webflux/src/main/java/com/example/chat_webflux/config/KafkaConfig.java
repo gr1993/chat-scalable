@@ -4,6 +4,7 @@ import com.example.chat_webflux.kafka.KafkaEvent;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,11 +21,14 @@ import java.util.UUID;
 @Configuration
 public class KafkaConfig {
 
+    @Value("${server.id}")
+    private String serverId;
+
     @Bean
     public ReactiveKafkaProducerTemplate<String, Object> reactiveKafkaProducerTemplate(
             KafkaProperties props) {
         Map<String, Object> producerProps = new HashMap<>(props.buildProducerProperties());
-        producerProps.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "tx-");
+        producerProps.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "tx-" + serverId);
         producerProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
 
         return new ReactiveKafkaProducerTemplate<>(

@@ -1,3 +1,6 @@
+server:
+  id: ${SERVER_ID:server1}
+
 spring:
   data:
     redis:

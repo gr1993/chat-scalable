@@ -1,27 +1,55 @@
+x-chat-server-common: &chat-server-common
+  image: myrepo/chat-server:1.0.0
+  privileged: true
+  networks:
+    - chat-net
+  environment: &chat-server-env
+    REDIS_HOST: redis-master
+    POSTGRES_HOST: pgpool
+    POSTGRES_PORT: 5432
+    KAFKA_BOOTSTRAP_SERVERS: kafka1:9091,kafka2:9092,kafka3:9094
+  deploy:
+    resources:
+      limits:
+        cpus: "0.5"
+        memory: 512M
+      reservations:
+        cpus: "0.5"
+        memory: 512M
+
 services:
   chat-server1:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    <<: *chat-server-common
     container_name: chat-server1
-    privileged: true
-    ports:
-      - "8080:8080"
-    networks:
-      - chat-net
+
+  chat-server2:
+    <<: *chat-server-common
+    container_name: chat-server2
     environment:
-      REDIS_HOST: redis-master
-      POSTGRES_HOST: pgpool
-      POSTGRES_PORT: 5432
-      KAFKA_BOOTSTRAP_SERVERS: kafka1:9091,kafka2:9092,kafka3:9094
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.5"
-          memory: 512M
+      <<: *chat-server-env
+      SERVER_ID: server2
+
+  chat-server3:
+    <<: *chat-server-common
+    container_name: chat-server3
+    environment:
+      <<: *chat-server-env
+      SERVER_ID: server3
+
+  
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - chat-server1
+      - chat-server2
+      - chat-server3
+    networks:
+    - chat-net
           
 
 networks:

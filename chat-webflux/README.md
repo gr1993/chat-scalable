@@ -26,8 +26,11 @@
 
 #### 컨테이너 실행 명령어
 ```shell
-# 재빌드 후 실행 명령어
-docker-compose up --build -d
+# 빌드 명령어(이번에는 같은 이미지를 3개 컨테이너가 사용하므로 빌드를 별도로 수행)
+docker build -t myrepo/chat-server:1.0.0 .
+
+# 실행 명령어
+docker-compose up -d
 
 # 재실행 명령어
 # 명령어 파이프 (linux=&&, Window cmd=&, Window PowerShell=;)
