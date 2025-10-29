@@ -1,0 +1,29 @@
+services:
+  chat-server1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chat-server1
+    privileged: true
+    ports:
+      - "8080:8080"
+    networks:
+      - chat-net
+    environment:
+      REDIS_HOST: redis-master
+      POSTGRES_HOST: pgpool
+      POSTGRES_PORT: 5432
+      KAFKA_BOOTSTRAP_SERVERS: kafka1:9091,kafka2:9092,kafka3:9094
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+          
+
+networks:
+  chat-net:
+    external: true

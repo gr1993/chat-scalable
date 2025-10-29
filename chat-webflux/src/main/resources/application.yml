@@ -1,11 +1,11 @@
 spring:
   data:
     redis:
-      host: localhost
+      host: ${REDIS_HOST:localhost}
       port: 6379
 
   r2dbc:
-    url: r2dbc:postgresql://localhost:5000/postgres
+    url: r2dbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5000}/postgres
     username: postgres
     password: postgres
     pool:
@@ -13,7 +13,7 @@ spring:
       max-size: 20
 
   kafka:
-    bootstrap-servers: localhost:9091,localhost:9092,localhost:9094
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9091,localhost:9092,localhost:9094}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
