@@ -17,6 +17,7 @@ public class WebSocketClient {
     private final String url;
     private WebSocket webSocket;
     private String sessionId;
+    private boolean connected = false;
 
     public WebSocketClient(String url) {
         this.url = url;
@@ -28,6 +29,7 @@ public class WebSocketClient {
                 .buildAsync(URI.create(url), new WebSocket.Listener() {
                     @Override
                     public void onOpen(WebSocket webSocket) {
+                        connected = true;
                         System.out.println("웹소켓 연결 성공");
                         WebSocket.Listener.super.onOpen(webSocket);
                     }
@@ -48,14 +50,20 @@ public class WebSocketClient {
 
                     @Override
                     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+                        connected = false;
                         System.out.println("웹소켓 세션이 종료되었습니다. : " + reason);
                         return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
                     }
 
                     @Override
                     public void onError(WebSocket webSocket, Throwable error) {
+                        connected = false;
                         System.err.println("예외 발생: " + error.getMessage());
                     }
                 }).join();
+    }
+
+    public void send() {
+        webSocket.sendText("Ping from client ", true);
     }
 }

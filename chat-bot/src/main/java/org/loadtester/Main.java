@@ -3,8 +3,14 @@ package org.loadtester;
 import org.loadtester.client.WebSocketClient;
 import org.loadtester.config.ConfigLoader;
 import org.loadtester.dto.LoadTestConfig;
+import org.loadtester.dto.SendMessageInfo;
 import org.loadtester.service.ChatService;
+import org.loadtester.util.FileLogger;
 import org.loadtester.util.MessageUtil;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Main {
     private final static LoadTestConfig config = ConfigLoader.load("config.json");
@@ -12,6 +18,9 @@ public class Main {
 
     private final static String SEND_MESSAGE = MessageUtil.generateRandomMessage(config.getMessageLength());
     private static Long roomId = 0L;
+
+    private final static AtomicLong totalMessageCount = new AtomicLong();
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public static void main(String[] args) {
         try {
@@ -31,6 +40,14 @@ public class Main {
                 // 각 사용자 생성 사이에 delay 추가
                 Thread.sleep(delayMillis);
             }
+
+            String nowDateTime = LocalDateTime.now().format(formatter);
+            FileLogger.init("test-result.txt");
+            FileLogger.log("테스트 완료 시각 : " + nowDateTime);
+            FileLogger.log("모든 사용자 시뮬레이션이 완료되어 메인 함수를 종료합니다.");
+            FileLogger.log("총 메세지 전송 갯수 : " + totalMessageCount.get() + "개");
+            FileLogger.close();
+
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -51,7 +68,33 @@ public class Main {
             // 채팅방 입장 API
             chatService.enterRoom(roomId, userId, sessionId);
 
-            
+            // 메시지 전송 시작
+            new Thread(() -> simulateSendMessage(webSocketClient, userId)).start();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private static void simulateSendMessage(WebSocketClient webSocketClient, String userId) {
+        try {
+            long messageSendInterval = 1000L; // 1초마다 메시지 전송
+            long chatDurationMillis = config.getChatDurationSeconds() * 1000L;
+            long startTime = System.currentTimeMillis();
+
+            while (System.currentTimeMillis() - startTime < chatDurationMillis && webSocketClient.isConnected()) {
+                // 메시지 전송
+                SendMessageInfo messageInfo = new SendMessageInfo(
+                        roomId,
+                        userId,
+                        SEND_MESSAGE
+                );
+
+                webSocketClient.send();
+                totalMessageCount.incrementAndGet();
+
+                Thread.sleep(messageSendInterval);
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
