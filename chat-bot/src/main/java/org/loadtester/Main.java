@@ -2,7 +2,7 @@ package org.loadtester;
 
 import org.loadtester.config.ConfigLoader;
 import org.loadtester.dto.LoadTestConfig;
-import org.loadtester.service.WebSocketClient;
+import org.loadtester.client.WebSocketClient;
 
 public class Main {
     private final static LoadTestConfig config = ConfigLoader.load("config.json");

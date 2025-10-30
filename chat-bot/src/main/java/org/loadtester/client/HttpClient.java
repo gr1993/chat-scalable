@@ -1,4 +1,4 @@
-package org.loadtester.service;
+package org.loadtester.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpEntity;
@@ -9,7 +9,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 
-public class HttpClientService {
+public class HttpClient {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
