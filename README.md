@@ -11,6 +11,9 @@
 [chat-webflux]
     └── 비상태(Stateless) 구조의 Spring WebFlux + Netty 기반 채팅 서버
 
+[chat-monitoring]
+    └── Prometheus, Grafana 등 모니터링 설정
+
 [chat-infra] 
     └── Redis, PostgreSQL, Kafka 등 인프라 구성 스크립트
 ```</code></pre>
