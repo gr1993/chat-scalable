@@ -10,6 +10,7 @@ import org.loadtester.util.MessageUtil;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Main {
@@ -21,6 +22,7 @@ public class Main {
 
     private final static AtomicLong totalMessageCount = new AtomicLong();
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static CountDownLatch userCompletionLatch;
 
     public static void main(String[] args) {
         try {
@@ -29,6 +31,7 @@ public class Main {
             int userCount = config.getUserCount();
             int rampUpTimeSeconds = config.getRampUpTimeSeconds();
             long delayMillis = (rampUpTimeSeconds * 1000L) / userCount;
+            userCompletionLatch = new CountDownLatch(userCount);
 
             for (int i = 1; i < userCount + 1; i++) {
                 int userId = i;
@@ -40,6 +43,8 @@ public class Main {
                 // 각 사용자 생성 사이에 delay 추가
                 Thread.sleep(delayMillis);
             }
+
+            userCompletionLatch.await();
 
             String nowDateTime = LocalDateTime.now().format(formatter);
             FileLogger.init("test-result.txt");
@@ -73,6 +78,7 @@ public class Main {
 
         } catch (Exception ex) {
             ex.printStackTrace();
+            userCompletionLatch.countDown();
         }
     }
 
@@ -89,14 +95,27 @@ public class Main {
                         userId,
                         SEND_MESSAGE
                 );
-
-                webSocketClient.send();
+                webSocketClient.send(messageInfo);
                 totalMessageCount.incrementAndGet();
 
                 Thread.sleep(messageSendInterval);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
+        } finally {
+            try {
+                // 채팅방 퇴장 API 호출
+                chatService.exitRoom(roomId, userId);
+            } catch (Exception ignored) {}
+
+            try {
+                if (webSocketClient.isConnected()) {
+                    webSocketClient.disconnect();
+                    System.out.println("웹소켓 세션이 종료되었습니다.");
+                }
+            } catch (Exception ignored) {}
+
+            userCompletionLatch.countDown();
         }
     }
 }
