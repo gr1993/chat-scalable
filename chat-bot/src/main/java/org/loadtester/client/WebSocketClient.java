@@ -78,4 +78,13 @@ public class WebSocketClient {
         String json = mapper.writeValueAsString(wsJsonMessage);
         webSocket.sendText(json, true);
     }
+
+    public void subscribe(String destination) throws JsonProcessingException {
+        WsJsonMessage wsJsonMessage = new WsJsonMessage(
+                "SUBSCRIBE",
+                destination
+        );
+        String json = mapper.writeValueAsString(wsJsonMessage);
+        webSocket.sendText(json, true);
+    }
 }

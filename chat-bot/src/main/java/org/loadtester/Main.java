@@ -70,6 +70,11 @@ public class Main {
 
             String sessionId = webSocketClient.getSessionId();
 
+            // 채팅방 생성 구독
+            webSocketClient.subscribe("/topic/rooms");
+            // 채팅방 메시지 구독
+            webSocketClient.subscribe("/topic/message/" + roomId);
+
             // 채팅방 입장 API
             chatService.enterRoom(roomId, userId, sessionId);
 

@@ -17,7 +17,6 @@ public class ChatService {
     private final HttpHeaders headers;
 
     private HttpClient httpClient = new HttpClient();
-    private ObjectMapper mapper = new ObjectMapper();
 
     public ChatService(String restApiBaseUrl) {
         this.restApiBaseUrl = restApiBaseUrl;
