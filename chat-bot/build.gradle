@@ -10,6 +10,12 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.springframework:spring-web:6.2.8'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.19.1'
+
+    compileOnly 'org.projectlombok:lombok:1.18.38'
+    annotationProcessor 'org.projectlombok:lombok:1.18.38'
+
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
