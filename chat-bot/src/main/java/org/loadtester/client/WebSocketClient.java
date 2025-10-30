@@ -3,6 +3,7 @@ package org.loadtester.client;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
+import org.loadtester.dto.WsJsonMessage;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -63,7 +64,18 @@ public class WebSocketClient {
                 }).join();
     }
 
-    public void send() {
-        webSocket.sendText("Ping from client ", true);
+    public void disconnect() {
+        webSocket.sendClose(WebSocket.NORMAL_CLOSURE, "Bye")
+                .thenRun(() -> System.out.println("웹소켓 세션이 종료되었습니다."));
+    }
+
+    public <T> void send(T data) throws JsonProcessingException {
+        WsJsonMessage<T> wsJsonMessage = new WsJsonMessage<>(
+                "SEND",
+            "/api/messages",
+                data
+        );
+        String json = mapper.writeValueAsString(wsJsonMessage);
+        webSocket.sendText(json, true);
     }
 }
