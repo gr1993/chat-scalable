@@ -4,6 +4,8 @@ import com.example.chat_webflux.common.ChatSessionManager;
 import com.example.chat_webflux.common.RoomUserSessionManager;
 import com.example.chat_webflux.dto.WebSocketRoomUser;
 import com.example.chat_webflux.service.ChatRoomService;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -13,6 +15,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 @Component
 @RequiredArgsConstructor
 public class ChatWebSocketHandler implements WebSocketHandler {
@@ -21,6 +25,13 @@ public class ChatWebSocketHandler implements WebSocketHandler {
     private final JsonMessageRouter jsonMessageRouter;
     private final ChatSessionManager chatSessionManager;
     private final RoomUserSessionManager roomUserSessionManager;
+    private final MeterRegistry meterRegistry;
+    private final AtomicInteger activeConnections = new AtomicInteger(0);
+
+    @PostConstruct
+    public void initMetrics() {
+        meterRegistry.gauge("chat_app_active_connections", activeConnections);
+    }
 
     @Override
     public Mono<Void> handle(WebSocketSession session) {
@@ -44,11 +55,15 @@ public class ChatWebSocketHandler implements WebSocketHandler {
                         // 해당 사용자 퇴장 처리
                         chatRoomService.exitRoom(roomUser.getRoomId(), roomUser.getUserId());
                     }
+                    activeConnections.decrementAndGet();
                 })
                 .then();
 
         Flux<WebSocketMessage> output = sessionSink.asFlux()
                 .map(session::textMessage);
+
+        // 웹소켓 연결 커스텀 지표 수집
+        activeConnections.incrementAndGet();
 
         return session.send(output).and(input);
     }

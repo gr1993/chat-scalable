@@ -17,6 +17,8 @@
 * kafka
   * reactor-kafka
   * spring-kafka-test : @EmbeddedKafka 사용
+* spring-boot-starter-actuator : 모니터링에 필요하며 Micrometer를 포함한 모듈
+* micrometer-registry-prometheus : MeterRegistry 프로메테우스 구현체
 
 
 ### 도커 환경 구성

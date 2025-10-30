@@ -10,6 +10,7 @@ import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.ChatMessageRepository;
 import com.example.chat_webflux.repository.ChatRoomRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
@@ -33,6 +34,7 @@ public class ChatMessageService {
     /**
      * CHAT_MESSAGE_CREATED, CHAT_MESSAGE_NOTIFICATION 두 토픽에 동시에 전송
      */
+    @Timed("websocket_message_seconds")
     public Mono<Void> sendChatMessageKafkaEvent(ChatMessage chatMessage, boolean isSystem) {
         String type = isSystem ? MessageType.system.name() : MessageType.user.name();
 
