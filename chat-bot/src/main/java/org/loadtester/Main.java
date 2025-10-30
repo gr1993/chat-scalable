@@ -1,11 +1,16 @@
 package org.loadtester;
 
+import org.loadtester.config.ConfigLoader;
+import org.loadtester.dto.LoadTestConfig;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.util.concurrent.CompletionStage;
 
 public class Main {
+    private final static LoadTestConfig config = ConfigLoader.load("config.json");
+
     public static void main(String[] args) {
         HttpClient client = HttpClient.newHttpClient();
         WebSocket webSocket = client.newWebSocketBuilder()
