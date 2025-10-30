@@ -1,5 +1,8 @@
 package org.loadtester.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -8,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.util.List;
 
 public class HttpClient {
     private final RestTemplate restTemplate = new RestTemplate();
@@ -35,6 +39,25 @@ public class HttpClient {
 
     public void delete(String url) {
         request(HttpMethod.DELETE, url, null,null, String.class);
+    }
+
+    public <T> List<T> fetchList(String url, Class<T> elementType) {
+        try {
+            String json = get(url, String.class);
+            JavaType listType = objectMapper.getTypeFactory().constructCollectionType(List.class, elementType);
+            return objectMapper.readValue(json, listType);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException("JSON 파싱 실패: " + url, ex);
+        }
+    }
+
+    public <T> T fetchAndParse(String url, HttpHeaders headers, TypeReference<T> typeRef) {
+        try {
+            String json = get(url, headers, String.class);
+            return objectMapper.readValue(json, typeRef);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException("JSON 파싱 실패: " + url, ex);
+        }
     }
 
     private <T> T request(HttpMethod httpMethod, String url, HttpHeaders headers, Object requestBody, Class<T> responseType) {
