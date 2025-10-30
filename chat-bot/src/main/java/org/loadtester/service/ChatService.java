@@ -44,6 +44,31 @@ public class ChatService {
         return getFirstRoomInfo().getRoomId();
     }
 
+    /**
+     * 채팅방에 입장
+     */
+    public void enterRoom(Long roomId, String userId, String sessionId) {
+        HttpHeaders sessionHeaders = new HttpHeaders();
+        sessionHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        sessionHeaders.add("X-Session-Id", sessionId);
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("userId", userId);
+        httpClient.post(restApiBaseUrl + "/api/room/" + roomId + "/enter", sessionHeaders, formData);
+    }
+
+    /**
+     * 채팅방에서 퇴장
+     */
+    public void exitRoom(Long roomId, String userId) {
+        HttpHeaders sessionHeaders = new HttpHeaders();
+        sessionHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("userId", userId);
+        httpClient.post(restApiBaseUrl + "/api/room/" + roomId + "/exit", sessionHeaders, formData);
+    }
+
     private ChatRoomInfo getFirstRoomInfo() {
         ApiResponse<List<ChatRoomInfo>> response = httpClient.fetchAndParse(
                 restApiBaseUrl + "/api/room",
