@@ -4,6 +4,7 @@ import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.entity.ChatUser;
 import com.example.chat_webflux.entity.OutboxEvent;
 import com.example.chat_webflux.entity.OutboxEventStatus;
+import com.example.chat_webflux.kafka.ChatKafkaProducer;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.OutboxEventRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -31,8 +32,8 @@ public class OutboxEventService {
 
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
-    private final ReactiveKafkaProducerTemplate<String, Object> kafkaSender;
     private final RedissonClient redissonClient;
+    private final ChatKafkaProducer chatKafkaProducer;
 
     @PostConstruct
     public void init() {
@@ -124,7 +125,8 @@ public class OutboxEventService {
     }
 
     private <T> Mono<Void> sendKafkaEvent(String topic, String key, T value) {
-        return kafkaSender.sendTransactionally(
+        ReactiveKafkaProducerTemplate<String, Object> producer = chatKafkaProducer.createProducerForRequest();
+        return producer.sendTransactionally(
                 Flux.just(
                         SenderRecord.create(
                                 topic,

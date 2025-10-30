@@ -29,6 +29,11 @@ spring:
         spring.json.trusted.packages: "*"
 
 
+logging:
+  level:
+    org.apache.kafka.clients.producer.ProducerConfig: ERROR
+
+
 management:
   endpoints:
     web:

@@ -6,6 +6,7 @@ import com.example.chat_webflux.dto.ChatMessageWs;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatMessage;
 import com.example.chat_webflux.entity.MessageType;
+import com.example.chat_webflux.kafka.ChatKafkaProducer;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.ChatMessageRepository;
 import com.example.chat_webflux.repository.ChatRoomRepository;
@@ -29,7 +30,7 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomManager chatRoomManager;
     private final ObjectMapper objectMapper;
-    private final ReactiveKafkaProducerTemplate<String, Object> kafkaSender;
+    private final ChatKafkaProducer chatKafkaProducer;
 
     /**
      * CHAT_MESSAGE_CREATED, CHAT_MESSAGE_NOTIFICATION 두 토픽에 동시에 전송
@@ -37,8 +38,9 @@ public class ChatMessageService {
     @Timed("websocket_message_seconds")
     public Mono<Void> sendChatMessageKafkaEvent(ChatMessage chatMessage, boolean isSystem) {
         String type = isSystem ? MessageType.system.name() : MessageType.user.name();
+        ReactiveKafkaProducerTemplate<String, Object> producer = chatKafkaProducer.createProducerForRequest();
 
-        return kafkaSender.sendTransactionally(
+        return producer.sendTransactionally(
                 Flux.just(
                         SenderRecord.create(
                                 KafkaTopics.CHAT_MESSAGE_CREATED,
