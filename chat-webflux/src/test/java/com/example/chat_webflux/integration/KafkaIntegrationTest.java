@@ -92,7 +92,7 @@ public class KafkaIntegrationTest {
                             KafkaTopics.CHAT_MESSAGE_CREATED,
                             null,
                             null,
-                            chatUser.getId().toString(),
+                            chatUser.getId(),
                             chatUser,
                             null
                         )

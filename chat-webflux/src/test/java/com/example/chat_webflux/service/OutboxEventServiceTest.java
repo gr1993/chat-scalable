@@ -2,6 +2,7 @@ package com.example.chat_webflux.service;
 
 import com.example.chat_webflux.entity.ChatUser;
 import com.example.chat_webflux.entity.OutboxEvent;
+import com.example.chat_webflux.kafka.ChatKafkaProducer;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.OutboxEventRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -35,11 +36,13 @@ public class OutboxEventServiceTest {
     private ObjectMapper objectMapper;
 
     @Mock
-    private ReactiveKafkaProducerTemplate<String, Object> kafkaSender;
+    private ChatKafkaProducer chatKafkaProducer;;
 
     @Mock
     private RedissonClient redissonClient;
 
+    @Mock
+    ReactiveKafkaProducerTemplate<String, Object> producer;
 
     @Test
     void saveOutboxEvent_성공() throws Exception {
@@ -74,7 +77,9 @@ public class OutboxEventServiceTest {
                 .thenReturn(Flux.just(outboxEvent));
         when(objectMapper.readValue(any(String.class), any(TypeReference.class)))
                 .thenReturn(payloadMap);
-        when(kafkaSender.sendTransactionally(any(Flux.class)))
+        when(chatKafkaProducer.createProducerForRequest())
+                .thenReturn(producer);
+        when(producer.sendTransactionally(any(Flux.class)))
                 .thenReturn(Flux.empty());
         when(outboxEventRepository.updateStatus(any(UUID.class), any(String.class)))
                 .thenReturn(Mono.empty());
@@ -83,7 +88,7 @@ public class OutboxEventServiceTest {
         outboxEventService.checkOutboxAndPublish().block();
 
         // then
-        verify(kafkaSender).sendTransactionally(any(Flux.class));
+        verify(producer).sendTransactionally(any(Flux.class));
     }
 
     @Test
@@ -97,7 +102,7 @@ public class OutboxEventServiceTest {
 
         // then
         verify(objectMapper, never()).readValue(anyString(), any(TypeReference.class));
-        verify(kafkaSender, never()).send(anyString(), any());
+        verify(producer, never()).send(anyString(), any());
     }
 
     private OutboxEvent getChatUserOutboxEvent(Map<String, Object> payloadMap) throws Exception {
