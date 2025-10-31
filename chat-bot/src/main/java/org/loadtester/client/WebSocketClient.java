@@ -9,16 +9,18 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 @Getter
 public class WebSocketClient {
 
-    private final ObjectMapper mapper = new ObjectMapper();
     private final String url;
     private WebSocket webSocket;
     private String sessionId;
     private boolean connected = false;
+    private final StringBuilder messageBuffer = new StringBuilder();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     public WebSocketClient(String url) {
         this.url = url;
@@ -28,6 +30,7 @@ public class WebSocketClient {
         HttpClient client = HttpClient.newHttpClient();
         webSocket = client.newWebSocketBuilder()
                 .buildAsync(URI.create(url), new WebSocket.Listener() {
+
                     @Override
                     public void onOpen(WebSocket webSocket) {
                         connected = true;
@@ -37,16 +40,25 @@ public class WebSocketClient {
 
                     @Override
                     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-                        System.out.println("메시지 수신: " + data);
-                        try {
-                            Map<String, Object> map = mapper.readValue(String.valueOf(data), Map.class);
-                            if ("session-info".equals(map.get("type"))) {
-                                sessionId = (String)map.get("sessionId");
+                        messageBuffer.append(data);
+
+                        if (last) {
+                            String completeMessage = messageBuffer.toString();
+                            messageBuffer.setLength(0);
+                            System.out.println("메시지 수신: " + completeMessage);
+
+                            try {
+                                Map<String, Object> map = mapper.readValue(String.valueOf(completeMessage), Map.class);
+                                if ("session-info".equals(map.get("type"))) {
+                                    sessionId = (String)map.get("sessionId");
+                                }
+                            } catch (JsonProcessingException e) {
+                                throw new RuntimeException(e);
                             }
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
                         }
-                        return WebSocket.Listener.super.onText(webSocket, data, last);
+
+                        webSocket.request(1);
+                        return CompletableFuture.completedFuture(null);
                     }
 
                     @Override
