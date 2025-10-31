@@ -6,7 +6,7 @@ import com.example.chat_webflux.dto.ChatMessageWs;
 import com.example.chat_webflux.dto.WsJsonMessage;
 import com.example.chat_webflux.entity.ChatMessage;
 import com.example.chat_webflux.entity.MessageType;
-import com.example.chat_webflux.kafka.ChatKafkaProducer;
+import com.example.chat_webflux.kafka.ChatKafkaProducerPool;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.ChatMessageRepository;
 import com.example.chat_webflux.repository.ChatRoomRepository;
@@ -14,12 +14,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.kafka.sender.SenderRecord;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -30,7 +30,7 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomManager chatRoomManager;
     private final ObjectMapper objectMapper;
-    private final ChatKafkaProducer chatKafkaProducer;
+    private final ChatKafkaProducerPool producerPool;
 
     /**
      * CHAT_MESSAGE_CREATED, CHAT_MESSAGE_NOTIFICATION 두 토픽에 동시에 전송
@@ -38,31 +38,27 @@ public class ChatMessageService {
     @Timed("websocket_message_seconds")
     public Mono<Void> sendChatMessageKafkaEvent(ChatMessage chatMessage, boolean isSystem) {
         String type = isSystem ? MessageType.system.name() : MessageType.user.name();
-        ReactiveKafkaProducerTemplate<String, Object> producer = chatKafkaProducer.createProducerForRequest();
 
-        return producer.sendTransactionally(
-                Flux.just(
-                        SenderRecord.create(
-                                KafkaTopics.CHAT_MESSAGE_CREATED,
-                                null,
-                                null,
-                                chatMessage.getRoomId().toString(),
-                                chatMessage,
-                                null
-                        ),
-                        SenderRecord.create(
-                                KafkaTopics.CHAT_MESSAGE_NOTIFICATION,
-                                null,
-                                null,
-                                chatMessage.getRoomId().toString(),
-                                new ChatMessageInfo(chatMessage, type),
-                                null
-                        )
+        return producerPool.sendKafkaEvent(List.of(
+                SenderRecord.create(
+                        KafkaTopics.CHAT_MESSAGE_CREATED,
+                        null,
+                        null,
+                        chatMessage.getRoomId().toString(),
+                        chatMessage,
+                        null
+                ),
+                SenderRecord.create(
+                        KafkaTopics.CHAT_MESSAGE_NOTIFICATION,
+                        null,
+                        null,
+                        chatMessage.getRoomId().toString(),
+                        new ChatMessageInfo(chatMessage, type),
+                        null
                 )
-        )
-        .doOnNext(r -> log.info("Kafka 전송 성공: {}", r))
-        .doOnError(e -> log.error("Kafka 전송 실패", e))
-        .then();
+        ))
+        .doOnSuccess(unused -> log.info("Kafka 전송 성공"))
+        .doOnError(e -> log.error("Kafka 전송 실패", e));
     }
 
     public Mono<Void> saveChatMessage(ChatMessage chatMessage) {

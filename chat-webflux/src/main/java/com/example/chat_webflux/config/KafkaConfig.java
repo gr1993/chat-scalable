@@ -1,17 +1,15 @@
 package com.example.chat_webflux.config;
 
+import com.example.chat_webflux.kafka.ChatKafkaProducerPool;
 import com.example.chat_webflux.kafka.KafkaEvent;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
-import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import reactor.kafka.receiver.ReceiverOptions;
-import reactor.kafka.sender.SenderOptions;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,15 +23,8 @@ public class KafkaConfig {
     private String serverId;
 
     @Bean
-    public ReactiveKafkaProducerTemplate<String, Object> reactiveKafkaProducerTemplate(
-            KafkaProperties props) {
-        Map<String, Object> producerProps = new HashMap<>(props.buildProducerProperties());
-        producerProps.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "tx-" + serverId);
-        producerProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-
-        return new ReactiveKafkaProducerTemplate<>(
-                SenderOptions.create(producerProps)
-        );
+    public ChatKafkaProducerPool chatKafkaProducerPool(KafkaProperties props) {
+        return new ChatKafkaProducerPool(props, serverId,10);
     }
 
     // Outbox 이벤트 처리용 (로드밸런싱, 고정 group-id)

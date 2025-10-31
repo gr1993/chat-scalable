@@ -1,8 +1,7 @@
 package com.example.chat_webflux.service;
 
-import com.example.chat_webflux.entity.ChatUser;
 import com.example.chat_webflux.entity.OutboxEvent;
-import com.example.chat_webflux.kafka.ChatKafkaProducer;
+import com.example.chat_webflux.kafka.ChatKafkaProducerPool;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.OutboxEventRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -13,11 +12,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RedissonClient;
-import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -36,13 +35,10 @@ public class OutboxEventServiceTest {
     private ObjectMapper objectMapper;
 
     @Mock
-    private ChatKafkaProducer chatKafkaProducer;;
+    private ChatKafkaProducerPool producerPool;
 
     @Mock
     private RedissonClient redissonClient;
-
-    @Mock
-    ReactiveKafkaProducerTemplate<String, Object> producer;
 
     @Test
     void saveOutboxEvent_성공() throws Exception {
@@ -77,10 +73,8 @@ public class OutboxEventServiceTest {
                 .thenReturn(Flux.just(outboxEvent));
         when(objectMapper.readValue(any(String.class), any(TypeReference.class)))
                 .thenReturn(payloadMap);
-        when(chatKafkaProducer.createProducerForRequest())
-                .thenReturn(producer);
-        when(producer.sendTransactionally(any(Flux.class)))
-                .thenReturn(Flux.empty());
+        when(producerPool.sendKafkaEvent(any(List.class)))
+                .thenReturn(Mono.empty());
         when(outboxEventRepository.updateStatus(any(UUID.class), any(String.class)))
                 .thenReturn(Mono.empty());
 
@@ -88,7 +82,7 @@ public class OutboxEventServiceTest {
         outboxEventService.checkOutboxAndPublish().block();
 
         // then
-        verify(producer).sendTransactionally(any(Flux.class));
+        verify(producerPool).sendKafkaEvent(any(List.class));
     }
 
     @Test
@@ -102,7 +96,7 @@ public class OutboxEventServiceTest {
 
         // then
         verify(objectMapper, never()).readValue(anyString(), any(TypeReference.class));
-        verify(producer, never()).send(anyString(), any());
+        verify(producerPool, never()).sendKafkaEvent(any(List.class));
     }
 
     private OutboxEvent getChatUserOutboxEvent(Map<String, Object> payloadMap) throws Exception {

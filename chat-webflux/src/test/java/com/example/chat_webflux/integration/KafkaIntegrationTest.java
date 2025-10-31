@@ -2,6 +2,7 @@ package com.example.chat_webflux.integration;
 
 import com.example.chat_webflux.entity.ChatMessage;
 import com.example.chat_webflux.entity.ChatUser;
+import com.example.chat_webflux.kafka.ChatKafkaProducerPool;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.service.ChatMessageService;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -13,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
-import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -57,7 +57,7 @@ public class KafkaIntegrationTest {
     private ChatMessageService chatMessageService;
 
     @Autowired
-    private ReactiveKafkaProducerTemplate<String, Object> kafkaSender;
+    private ChatKafkaProducerPool producerPool;
 
     private ReactiveKafkaConsumerTemplate<String, Object> kafkaConsumer;
 
@@ -86,18 +86,16 @@ public class KafkaIntegrationTest {
         ChatUser chatUser = new ChatUser("park");
 
         // when
-        Mono<Void> sendMono = kafkaSender.sendTransactionally(
-                Flux.just(
-                        SenderRecord.create(
-                            KafkaTopics.CHAT_MESSAGE_CREATED,
-                            null,
-                            null,
-                            chatUser.getId(),
-                            chatUser,
-                            null
-                        )
+        Mono<Void> sendMono = producerPool.sendKafkaEvent(List.of(
+                SenderRecord.create(
+                        KafkaTopics.CHAT_MESSAGE_CREATED,
+                        null,
+                        null,
+                        chatUser.getId(),
+                        chatUser,
+                        null
                 )
-        ).then();
+        ));
         Mono<ChatUser> result = kafkaConsumer.receiveAutoAck()
                 .map(ConsumerRecord::value)
                 .cast(ChatUser.class)
@@ -151,7 +149,7 @@ public class KafkaIntegrationTest {
             private void someMethod() {}
         };
 
-        Flux<SenderRecord<String, Object, Integer>> records = Flux.just(
+        List<SenderRecord<String, Object, Object>> recordList = List.of(
                 SenderRecord.create(KafkaTopics.CHAT_MESSAGE_CREATED, null, null,
                         chatMessage.getRoomId().toString(), chatMessage, null),
                 SenderRecord.create(KafkaTopics.CHAT_MESSAGE_NOTIFICATION, null, null,
@@ -159,7 +157,7 @@ public class KafkaIntegrationTest {
         );
 
         // then
-        Mono<Void> sendMono = kafkaSender.sendTransactionally(records).then();
+        Mono<Void> sendMono = producerPool.sendKafkaEvent(recordList);
 
         // then
         StepVerifier.create(sendMono)

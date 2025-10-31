@@ -4,7 +4,7 @@ import com.example.chat_webflux.entity.ChatRoom;
 import com.example.chat_webflux.entity.ChatUser;
 import com.example.chat_webflux.entity.OutboxEvent;
 import com.example.chat_webflux.entity.OutboxEventStatus;
-import com.example.chat_webflux.kafka.ChatKafkaProducer;
+import com.example.chat_webflux.kafka.ChatKafkaProducerPool;
 import com.example.chat_webflux.kafka.KafkaTopics;
 import com.example.chat_webflux.repository.OutboxEventRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,13 +15,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.kafka.sender.SenderRecord;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -33,7 +33,7 @@ public class OutboxEventService {
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
     private final RedissonClient redissonClient;
-    private final ChatKafkaProducer chatKafkaProducer;
+    private final ChatKafkaProducerPool producerPool;
 
     @PostConstruct
     public void init() {
@@ -125,18 +125,15 @@ public class OutboxEventService {
     }
 
     private <T> Mono<Void> sendKafkaEvent(String topic, String key, T value) {
-        ReactiveKafkaProducerTemplate<String, Object> producer = chatKafkaProducer.createProducerForRequest();
-        return producer.sendTransactionally(
-                Flux.just(
-                        SenderRecord.create(
-                                topic,
-                                null,
-                                null,
-                                key,
-                                value,
-                                null
-                        )
+        return producerPool.sendKafkaEvent(List.of(
+                SenderRecord.create(
+                        topic,
+                        null,
+                        null,
+                        key,
+                        value,
+                        null
                 )
-        ).then();
+        ));
     }
 }
