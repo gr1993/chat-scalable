@@ -25,5 +25,8 @@ WORKDIR /app
 # 빌드된 JAR 파일 복사
 COPY --from=build /app/build/libs/*.jar app.jar
 
+# JVM 옵션 추가
+ENV JAVA_TOOL_OPTIONS="-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/heapdump.hprof"
+
 # 실행
 ENTRYPOINT ["java", "-jar", "app.jar"]
