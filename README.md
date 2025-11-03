@@ -60,6 +60,16 @@ Kafka 메시지를 소비하는 비즈니스 로직 내에서 Redis에 데이터
 설정(group-id 동일)을 그대로 사용한다. 반면, 채팅 메시지 중계용 Consumer는 모든 서버가 동일 메시지를  
 수신해야 하므로 group-id를 랜덤하게 설정하여(Fan-out 방식) 별도의 전용 Consumer로 처리할 예정이다.  
 
+#### Kafka 토픽의 오프셋이 2씩 오르는 현상
+Kafka UI로 확인해본 결과 토픽에 Message Count와 Offset이 1번 발행할 때 2씩 올라가는 현상이 발생하였다.  
+알고보니 **Kafka 트랜잭션** 기능을 사용하면 제어 배치라는 특수 레코드가 로그에 추가되기 때문에 2씩 증가한다고  
+한다. Kafka UI에서 특수 레코드가 노출되지는 않지만 트랜잭션 없이 발행하면 1씩 증가함을 확인하였다.
+
+트랜잭션 없이 메시지 발행 명령어
+```shell
+docker exec -it kafka1 kafka-console-producer --bootstrap-server kafka1:9091 --topic chat.message.created
+```
+
 
 ## 아키텍처 구성도
 ![architecture](./docs/architecture.png)
