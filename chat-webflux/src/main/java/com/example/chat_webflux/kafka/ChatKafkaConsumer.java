@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -38,17 +39,18 @@ public class ChatKafkaConsumer {
 
     private void handleRecord(ReactiveKafkaConsumerTemplate<String, KafkaEvent> consumer) {
         consumer.receive()
-                .doOnNext(record -> {
+                .concatMap(record -> {
                     KafkaEvent event = record.value();
                     KafkaEventHandler<KafkaEvent> handler = handlerRegistry.getHandler(record.topic());
                     if (handler != null) {
-                        handler.handle(event).subscribe();
+                        return handler.handle(event)
+                                .then(Mono.fromRunnable(() -> record.receiverOffset().acknowledge()));
                     } else {
                         log.warn("No handler found for event type: {}", event.getClass().getSimpleName());
+                        return Mono.fromRunnable(() -> record.receiverOffset().acknowledge());
                     }
-                    record.receiverOffset().acknowledge();
                 })
-                .doOnError(e -> log.error("Error in outbox consumer", e))
+                .doOnError(e -> log.error("Error in consumer", e))
                 .subscribe();
     }
 }
