@@ -44,7 +44,7 @@ public class ChatMessageService {
                         KafkaTopics.CHAT_MESSAGE_CREATED,
                         null,
                         null,
-                        chatMessage.getRoomId().toString(),
+                        null,
                         chatMessage,
                         null
                 ),
@@ -52,7 +52,7 @@ public class ChatMessageService {
                         KafkaTopics.CHAT_MESSAGE_NOTIFICATION,
                         null,
                         null,
-                        chatMessage.getRoomId().toString(),
+                        null,
                         new ChatMessageInfo(chatMessage, type),
                         null
                 )
