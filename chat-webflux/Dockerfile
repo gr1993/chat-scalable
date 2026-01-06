@@ -18,7 +18,7 @@ RUN gradle clean build --no-daemon
 
 
 # ----------- STEP 2: Run Stage -----------
-FROM openjdk:21-jdk
+FROM bellsoft/liberica-runtime-container:jdk-21-musl
 
 WORKDIR /app
 
