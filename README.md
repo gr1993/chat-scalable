@@ -19,7 +19,7 @@
 
 
 ## 프로젝트 개요
-[이전 프로젝트](https://github.com/gr1993/chat-service)에서는 MVC와 WebFlux 기반의 채팅 웹 서버를 구현하고, 해당 서버에 대해 성능 테스트를   
+[이전 프로젝트](https://github.com/gr1993/chat-service)에서는 Spring MVC(동기)와 WebFlux(비동기) 기반의 채팅 웹 서버를 구현하고, 해당 서버에 대해 성능 테스트를  
 진행하였다. 당시 구현한 웹 서버는 메모리에 상태를 유지하는 모놀리식 아키텍처로 설계되었었다.  
 이번 프로젝트에서는 확장성을 고려한 비상태(Stateless) WebFlux 기반의 채팅 서버를 구축할 예정이다.  
 서버의 상태는 Redis, RDBMS와 Kafka에 저장하며, 이를 통해 더 높은 처리량을 지원하는 시스템을 구현하고자 한다.  
@@ -29,16 +29,12 @@
 ```
 [chat-react]
     └── STOMP 없이 구현한 간단한 채팅 클라이언트 
-
 [chat-bot]
     └── STOMP 제거 버전의 시뮬레이션용 부하 테스트 봇
-
 [chat-webflux]
     └── 비상태(Stateless) 구조의 Spring WebFlux + Netty 기반 채팅 서버
-
 [chat-monitoring]
     └── Prometheus, Grafana 등 모니터링 설정
-
 [chat-infra] 
     └── Redis, PostgreSQL, Kafka 등 인프라 구성 스크립트
 ```
