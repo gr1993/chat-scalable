@@ -87,12 +87,12 @@ Kafka UI로 확인해본 결과 토픽에 Message Count와 Offset이 1번 발행
 docker exec -it kafka1 kafka-console-producer --bootstrap-server kafka1:9091 --topic chat.message.created
 ```
 
-### Kafka Producer 트랜잭션 설정에 대해 배운 점
+### Kafka Producer 트랜잭션 설정
 이 프로젝트의 성능 테스트를 모두 마치고 나서야 깨달은 사실이 있다.  
 바로 **Transactional Outbox Pattern을 적용하면 Kafka Producer의 Transaction 설정을 안해도 된다**는 것이다.  
 이 패턴에서는 DB 트랜잭션이 이미 데이터 정합성과 원자성을 보장하고 있으므로, Kafka는 단순한 이벤트 전달 채널로만  
 사용하는 것이 적절하다. 따라서 Producer 설정은 idempotence 정도만 적용하는 것이 가장 깔끔하고 성능 중심적인 설계이다.  
-더 자세한 내용은 [이 블로그](https://little-pecorino-c28.notion.site/Producer-25d82094ef0a80c39c83c146483d8e7e)의 transaction 옵션 부분을 참고하길 바란다.  
+더 자세한 내용은 [Producer 옵션 관련 블로그](https://little-pecorino-c28.notion.site/Producer-25d82094ef0a80c39c83c146483d8e7e)의 transaction 옵션 부분을 참고하길 바란다.  
 
 
 ## 성능테스트 결과
