@@ -1,7 +1,32 @@
 # chat-scalable
 확장성과 내결함성을 갖춘 WebFlux 기반 채팅 웹 서버 구현(Redis, Kafka 사용)
 
-<pre><code>```
+### 아키텍처 구성도
+![architecture](./docs/architecture.png)
+
+### 저장소 구축 및 복제 구성 정리 블로그
+* Nginx
+  * [로드 밸런싱 설정하기(+ 헬스 체크)](https://little-pecorino-c28.notion.site/29b82094ef0a80efb683de383ad7269a)
+* PostgreSQL
+  * [Replication 구성하기](https://www.notion.so/Replication-27182094ef0a80cfbe96cf02ea555347)
+  * [Failover(HA)와 Proxy Layer 구성하기](https://www.notion.so/Failover-HA-Proxy-Layer-27382094ef0a8083a27cde09c887c543)
+* Redis
+  * 이번 프로젝트에서는 Redis Sentinel 방식으로 구축
+  * [Redis Sentinel 구축](https://little-pecorino-c28.notion.site/Redis-Sentinel-26282094ef0a8053bff4d836e771ecfd)
+  * [Redis Cluster 구축](https://little-pecorino-c28.notion.site/Redis-Cluster-27082094ef0a80a0b574eb114c25398f)
+* Kafka
+  * [Kafka Cluster 구축](https://little-pecorino-c28.notion.site/Kafka-Zookeeper-Kraft-1a682094ef0a8048b229cc8fcef02e73)
+
+
+## 프로젝트 개요
+[이전 프로젝트](https://github.com/gr1993/chat-service)에서는 MVC와 WebFlux 기반의 채팅 웹 서버를 구현하고, 해당 서버에 대해 성능 테스트를   
+진행하였다. 당시 구현한 웹 서버는 메모리에 상태를 유지하는 모놀리식 아키텍처로 설계되었었다.  
+이번 프로젝트에서는 확장성을 고려한 비상태(Stateless) WebFlux 기반의 채팅 서버를 구축할 예정이다.  
+서버의 상태는 Redis, RDBMS와 Kafka에 저장하며, 이를 통해 더 높은 처리량을 지원하는 시스템을 구현하고자 한다.  
+이러한 구성은 확장성과 내결함성(Fault Tolerance)에 대한 이해를 높이기 위한 목적도 포함하고 있다.  
+
+### 프로젝트 구조
+```
 [chat-react]
     └── STOMP 없이 구현한 간단한 채팅 클라이언트 
 
@@ -16,15 +41,7 @@
 
 [chat-infra] 
     └── Redis, PostgreSQL, Kafka 등 인프라 구성 스크립트
-```</code></pre>
-
-
-## 프로젝트 개요
-[이전 프로젝트](https://github.com/gr1993/chat-service)에서는 MVC와 WebFlux 기반의 채팅 웹 서버를 구현하고, 해당 서버에 대해 성능 테스트를   
-진행하였다. 당시 구현한 웹 서버는 메모리에 상태를 유지하는 모놀리식 아키텍처로 설계되었었다.  
-이번 프로젝트에서는 확장성을 고려한 비상태(Stateless) WebFlux 기반의 채팅 서버를 구축할 예정이다.  
-서버의 상태는 Redis, RDBMS와 Kafka에 저장하며, 이를 통해 더 높은 처리량을 지원하는 시스템을 구현하고자 한다.  
-이러한 구성은 확장성과 내결함성(Fault Tolerance)에 대한 이해를 높이기 위한 목적도 포함하고 있다.  
+```
 
 ### 다중 채팅 서버간 채팅 메시지 공유
 이번에는 STOMP 기술을 제거하고 WebSocket만을 사용하며, Kafka의 메시징 시스템을 활용하여 채팅 메시지를  
@@ -46,7 +63,7 @@ Kafka 메시지를 소비하는 비즈니스 로직 내에서 Redis에 데이터
   * 아이디만 입력하는 간단한 절차로, 존재하지 않는 아이디의 경우 회원가입이 가능하다.
   * 회원가입은 중요도가 높고 발생 빈도가 낮은 이벤트이므로, RDBMS에 먼저 저장하여 강한 일관성을 확보하고, 이후 Kafka를 통해 이벤트를 발행하고 Redis 등에 캐싱 처리한다.
 * 채팅방
-  * 채팅방 정보 또한 먼저 RDBMS에 저장한 뒤, Kafka에 이벤트를 발행하여 Redis 캐싱(로드밸런싱)을 처리 후 알림 전송(브로드캐스트) 등 후속 처리를 비동기적으로 수행한다.
+  * 채팅방 정보 또한 먼저 RDBMS에 저장한 뒤, Kafka에 이벤트를 발행하여 Redis 캐싱(로드밸런싱)을 처리한 후 알림 전송(브로드캐스트) 등 후속 처리를 비동기적으로 수행한다.
 * 채팅 메시지
   * 채팅 메시지는 실시간성과 처리량이 중요한 이벤트이므로, Outbox 테이블을 이용하지 않을 것이며, Kafka의 알림 토픽과 생성 토픽(RDBMS 및 Redis 캐싱용)에 동시에 발행하여 처리한다.
 
@@ -78,23 +95,6 @@ docker exec -it kafka1 kafka-console-producer --bootstrap-server kafka1:9091 --t
 더 자세한 내용은 [이 블로그](https://little-pecorino-c28.notion.site/Producer-25d82094ef0a80c39c83c146483d8e7e)의 transaction 옵션 부분을 참고하길 바란다.  
 
 
-## 아키텍처 구성도
-![architecture](./docs/architecture.png)
-
-### 저장소 구축 및 복제 구성 정리 블로그
-* Nginx
-  * [로드 밸런싱 설정하기(+ 헬스 체크)](https://little-pecorino-c28.notion.site/29b82094ef0a80efb683de383ad7269a)
-* PostgreSQL
-  * [Replication 구성하기](https://www.notion.so/Replication-27182094ef0a80cfbe96cf02ea555347)
-  * [Failover(HA)와 Proxy Layer 구성하기](https://www.notion.so/Failover-HA-Proxy-Layer-27382094ef0a8083a27cde09c887c543)
-* Redis
-  * 이번 프로젝트에서는 Redis Sentinel 방식으로 구축
-  * [Redis Sentinel 구축](https://little-pecorino-c28.notion.site/Redis-Sentinel-26282094ef0a8053bff4d836e771ecfd)
-  * [Redis Cluster 구축](https://little-pecorino-c28.notion.site/Redis-Cluster-27082094ef0a80a0b574eb114c25398f)
-* Kafka
-  * [Kafka Cluster 구축](https://little-pecorino-c28.notion.site/Kafka-Zookeeper-Kraft-1a682094ef0a8048b229cc8fcef02e73)
-
-
 ## 성능테스트 결과
 이전 프로젝트와 마찬가지로 다중 웹서버들을 제한된(CPU, 메모리) 환경으로 구동하였다.  
 사용자 수는 10개 단위로 증가시켰으며, 메시지 생성 시간은 20초로 설정하였다. 성능테스트 결과는 아래와 같다.  
@@ -104,7 +104,7 @@ docker exec -it kafka1 kafka-console-producer --bootstrap-server kafka1:9091 --t
 ![maxUser](./docs/maxUser.png)
 ![maxUserPanel](./docs/maxUserPanel.png)
 
-100명의 동시 접속까지 메시지 유실없이 처리가 가능하였다. (위 이미지는 150명 시뮬레이션 실패)  
+100명의 동시 접속까지 메시지 유실 없이 처리가 가능하였다. (위 이미지는 150명 시뮬레이션 실패)  
 이전 프로젝트와 비교했을 때, 메모리 기반 저장 방식에서 지속성을 가진 저장 방식으로 변경하고, Kafka 등 여러  
 단계를 거치도록 비즈니스 로직이 크게 달라졌다. 그 결과, 다중 서버 환경임에도 불구하고 이전 프로젝트보다 성능이  
 상대적으로 낮게 나타났다. (이전 프로젝트는 최대 600명 까지 처리가 가능했음)  
@@ -113,18 +113,18 @@ docker exec -it kafka1 kafka-console-producer --bootstrap-server kafka1:9091 --t
 
 ![tpsPanel](./docs/tpsPanel.png)
 
-tps도 최대 접속자 수 지표에 비례하여 매우 저조한 처리량이 나온것을 확인할 수 있었다.
+tps도 최대 접속자 수 지표에 비례하여 매우 저조한 처리량이 나온 것을 확인할 수 있었다.
 
 ### 쓰레드 수
 
 ![threadCtnPanel](./docs/threadCtnPanel.png)
 
-이전 프로젝트는 쓰레드 수가 14개 정도를 유지했었는 데, 이번에는 RDBMS, Redis, Kafka 등 외부 저장소와  
-연결을 유지해야 하는 특성으로 인해 초기 실행 부터 87~92개 쓰레드 수가 생성되었다가 104개를 유지하였다.
+이전 프로젝트는 쓰레드 수가 14개 정도를 유지했는데, 이번에는 RDBMS, Redis, Kafka 등 외부 저장소와  
+연결을 유지해야 하는 특성으로 인해 초기 실행부터 87~92개 쓰레드 수가 생성되었다가 104개를 유지하였다.
 
 ### 최대 응답 속도
 
-최대 응답 속도 지표도 지속성 저장 로직이 추가되어 있기 때문에 이전 프로젝트보다 매우 느린것을 확인하였다. (평균 200ms 소요)  
+최대 응답 속도 지표도 지속성 저장 로직이 추가되어 있기 때문에 이전 프로젝트보다 매우 느린 것을 확인하였다. (평균 200ms 소요)  
 
 
 ## 결론
